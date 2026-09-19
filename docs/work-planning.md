@@ -1,5 +1,21 @@
 # Work Planning
 
+## Epic: MCP Server
+
+### Story 1: Bootstrap `booking-mcp-server` Application
+
+Set up the foundational python FastMCP project in the `booking-mcp-server`.
+
+- [x] Scaffold python 3.14 Application with `pyproject.toml`
+- [x] Setup Docker Build
+
+### Story 2: Bootstrap `booking-mcp-server` Application
+
+Implement tools exposed by the MCP server.
+
+-[ ] Implement search_flights tool
+-[ ] Implement book_flight tool
+
 ## Epic: Bootstrap Infrastructure
 
 Set up the foundational AWS infrastructure in **eu-west-1** required to deploy the travel booking agent.
@@ -63,7 +79,7 @@ As a developer, I can automatically plan and apply Terraform changes through a G
 
 As a developer, I can automatically build and push the MCP server image to ECR on code changes.
 
-- [ ] Create a GitHub Actions workflow to build and push the `booking-mcp-server` image to ECR.
+- [x] Create a GitHub Actions workflow to build and push the `booking-mcp-server` image to ECR.
 
 ### Story 3: QA App Image Build and Push Workflows
 
