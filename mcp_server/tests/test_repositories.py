@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 
+from app.db.models import Flight
 from app.db.repositories import BookingRepository, RouteRepository
 from app.schemas import FlightSearchRequest
 
@@ -202,6 +203,36 @@ class TestRouteRepositorySearch:
         route_ids = {r.route_id for r in results}
         # Only Route 1 matches all: July 15, 08:00 (morning), AA, $300, direct, economy
         assert route_ids == {1}
+
+
+    def test_excludes_sold_out_direct_route(self, session, seed_data):
+        """Exclude a direct route when its flight has no available seats."""
+        flight = session.query(Flight).filter(Flight.flight_id == 1).one()
+        flight.available_seats = 0
+        session.commit()
+        repo = RouteRepository(session)
+        request = FlightSearchRequest(origin="JFK", destination="LAX")
+        route_ids = {r.route_id for r in repo.search(request)}
+        assert 1 not in route_ids
+        assert route_ids == {2, 3, 5}
+
+    def test_excludes_connecting_route_with_sold_out_leg(self, session, seed_data):
+        """Exclude a connecting route when any leg has no available seats."""
+        flight = session.query(Flight).filter(Flight.flight_id == 4).one()
+        flight.available_seats = 0
+        session.commit()
+        repo = RouteRepository(session)
+        request = FlightSearchRequest(origin="JFK", destination="LAX")
+        route_ids = {r.route_id for r in repo.search(request)}
+        # Route 3 (JFK->ORD->LAX) excluded because leg 2 (flight 4) is sold out
+        assert 3 not in route_ids
+
+    def test_includes_route_with_available_seats(self, session, seed_data):
+        """Include routes where all flights have available seats."""
+        repo = RouteRepository(session)
+        request = FlightSearchRequest(origin="JFK", destination="LAX")
+        results = repo.search(request)
+        assert len(results) == 4
 
 
 class TestRouteRepositoryGetById:

@@ -11,10 +11,18 @@ class FlightSearchRequest(BaseModel):
     destination: str = Field(..., pattern=r"^[A-Z]{3}$", description="Arrival airport IATA code")
     date: dt.date | None = Field(None, description="Departure date")
     time_of_day: Literal["morning", "afternoon", "evening"] | None = None
-    airline: str | None = Field(None, pattern=r"^[A-Z0-9]{2}$", description="Airline IATA code")
+    airline: str | None = Field(
+        None,
+        pattern=r"^[A-Z0-9]{2}$",
+        description="Airline IATA code. Matches routes with at least one leg by this airline.",
+    )
     max_price: float | None = Field(None, gt=0)
     max_stops: int | None = Field(None, ge=0)
-    cabin_class: Literal["economy", "business", "first"] | None = None
+    cabin_class: Literal["economy", "business", "first"] | None = Field(
+        None,
+        description="Matches routes with at least one leg in this cabin class."
+        " Connecting routes may mix cabin classes.",
+    )
 
 
 class FlightLeg(BaseModel):

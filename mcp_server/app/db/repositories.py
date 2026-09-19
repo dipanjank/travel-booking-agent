@@ -31,6 +31,7 @@ class RouteRepository:
             .filter(Route.departure_airport == request.origin, Route.arrival_airport == request.destination)
             .distinct()
         )
+        query = self._filter_by_availability(query)
         if request.date:
             query = self._filter_by_date(query, request.date)
         if request.time_of_day:
@@ -52,6 +53,11 @@ class RouteRepository:
             .join(Flight, RouteFlight.flight_id == Flight.flight_id)
             .filter(*filters)
         )
+
+    def _filter_by_availability(self, query):
+        """Exclude routes where any flight leg has no available seats."""
+        sold_out_routes = self._route_ids_by_flight(Flight.available_seats <= 0)
+        return query.filter(Route.route_id.notin_(sold_out_routes))
 
     def _filter_by_date(self, query, departure_date):
         """Keep routes whose first leg departs on the given date."""
