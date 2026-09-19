@@ -15,18 +15,16 @@ Travel booking agent — two-service system for flight search/booking via natura
 - Python, FastAPI, uvicorn
 - fastMCP (MCP server), langchain-mcp-adapters (MCP client)
 - LangGraph + langchain-anthropic (conversational agent)
-- SQLAlchemy 2.0 async + asyncpg (database), Alembic (migrations)
-- AWS: ECS Fargate, RDS PostgreSQL, Cognito (OAuth 2.1), Secrets Manager, ECR
+- SQLAlchemy 2.0 + psycopg2 (database), Alembic (migrations)
+- AWS: ECS Fargate, RDS PostgreSQL, Secrets Manager, ECR
 
 ## Architecture
 
 ```
 User -> ALB -> QA App (FastAPI + LangGraph) -> MCP Server (fastMCP) -> PostgreSQL (RDS)
-                                      |
-                               AWS Cognito (Client Credentials grant for MCP auth)
 ```
 
-QA App authenticates users with username/password. MCP Server authenticates requests via OAuth 2.1 JWT (Cognito). DB uses its own credentials via Secrets Manager.
+QA App authenticates users with username/password. MCP Server has no authentication (planned for later). DB credentials stored in Secrets Manager.
 
 ## Development Environment
 
