@@ -3,7 +3,8 @@ import random
 from sqlalchemy.orm import Session
 
 from app.db.repositories import BookingRepository, RouteRepository
-from app.schemas import BookingConfirmation, BookingRequest, FlightLeg, PassengerDetails
+from app.schemas import BookingConfirmation, BookingRequest, PassengerDetails
+from app.services.converters import flight_to_leg
 
 PNR_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
@@ -28,6 +29,18 @@ class BookingService:
     def book(self, request: BookingRequest) -> BookingConfirmation:
         """Create a booking with passengers for the given route and return a confirmation."""
         route = self._route_repo.get_by_id(request.route_id)
+        num_passengers = len(request.passengers)
+
+        for rf in route.route_flights:
+            if rf.flight.available_seats < num_passengers:
+                raise ValueError(
+                    f"Flight {rf.flight.flight_number} has {rf.flight.available_seats} seat(s) "
+                    f"but {num_passengers} requested"
+                )
+
+        for rf in route.route_flights:
+            rf.flight.available_seats -= num_passengers
+
         pnr = self._generate_pnr()
 
         booking = self._booking_repo.create(
@@ -48,19 +61,7 @@ class BookingService:
         self._session.commit()
         self._session.refresh(booking)
 
-        legs = [
-            FlightLeg(
-                flight_number=rf.flight.flight_number,
-                airline=rf.flight.airline.name,
-                departure_airport=rf.flight.departure_airport,
-                arrival_airport=rf.flight.arrival_airport,
-                departure_time=rf.flight.departure_time,
-                arrival_time=rf.flight.arrival_time,
-                duration_minutes=rf.flight.duration_minutes,
-                cabin_class=rf.flight.cabin_class,
-            )
-            for rf in route.route_flights
-        ]
+        legs = [flight_to_leg(rf.flight) for rf in route.route_flights]
 
         return BookingConfirmation(
             pnr=booking.pnr,

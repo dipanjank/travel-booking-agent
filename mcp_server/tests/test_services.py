@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
+from app.db.models import Flight
 from app.db.repositories import BookingRepository, RouteRepository
 from app.schemas import BookingRequest, FlightSearchRequest, PassengerDetails
 from app.services.booking import BookingService
@@ -148,6 +149,82 @@ class TestBookingService:
         service = BookingService(route_repo, booking_repo, session)
         with pytest.raises(NoResultFound):
             service.book(self._make_request(route_id=999))
+
+    def test_book_decrements_available_seats(self, session, seed_data):
+        """Booking reduces available_seats on each flight in the route."""
+        route_repo = RouteRepository(session)
+        booking_repo = BookingRepository(session)
+        service = BookingService(route_repo, booking_repo, session)
+        flight_before = session.query(Flight).filter(Flight.flight_id == 1).one()
+        seats_before = flight_before.available_seats
+        service.book(self._make_request())
+        session.expire_all()
+        flight_after = session.query(Flight).filter(Flight.flight_id == 1).one()
+        assert flight_after.available_seats == seats_before - 1
+
+    def test_book_decrements_seats_by_passenger_count(self, session, seed_data):
+        """Booking with multiple passengers decrements by the number of passengers."""
+        route_repo = RouteRepository(session)
+        booking_repo = BookingRepository(session)
+        service = BookingService(route_repo, booking_repo, session)
+        request = BookingRequest(
+            route_id=1,
+            passengers=[
+                PassengerDetails(name="Alice", date_of_birth=date(1985, 5, 10), passport_number="PA111"),
+                PassengerDetails(name="Bob", date_of_birth=date(1987, 8, 20), passport_number="PB222"),
+            ],
+            contact_email="a@example.com",
+            contact_phone="+1111111111",
+        )
+        flight_before = session.query(Flight).filter(Flight.flight_id == 1).one()
+        seats_before = flight_before.available_seats
+        service.book(request)
+        session.expire_all()
+        flight_after = session.query(Flight).filter(Flight.flight_id == 1).one()
+        assert flight_after.available_seats == seats_before - 2
+
+    def test_book_insufficient_seats(self, session, seed_data):
+        """Raise ValueError when a flight has fewer seats than passengers requested."""
+        flight = session.query(Flight).filter(Flight.flight_id == 1).one()
+        flight.available_seats = 1
+        session.commit()
+        route_repo = RouteRepository(session)
+        booking_repo = BookingRepository(session)
+        service = BookingService(route_repo, booking_repo, session)
+        request = BookingRequest(
+            route_id=1,
+            passengers=[
+                PassengerDetails(name="Alice", date_of_birth=date(1985, 5, 10), passport_number="PA111"),
+                PassengerDetails(name="Bob", date_of_birth=date(1987, 8, 20), passport_number="PB222"),
+            ],
+            contact_email="a@example.com",
+            contact_phone="+1111111111",
+        )
+        with pytest.raises(ValueError, match="1 seat"):
+            service.book(request)
+
+    def test_book_no_seats(self, session, seed_data):
+        """Raise ValueError when a flight has zero available seats."""
+        flight = session.query(Flight).filter(Flight.flight_id == 1).one()
+        flight.available_seats = 0
+        session.commit()
+        route_repo = RouteRepository(session)
+        booking_repo = BookingRepository(session)
+        service = BookingService(route_repo, booking_repo, session)
+        with pytest.raises(ValueError, match="0 seat"):
+            service.book(self._make_request())
+
+    def test_book_connecting_route_decrements_all_legs(self, session, seed_data):
+        """Booking a connecting route decrements seats on every leg."""
+        route_repo = RouteRepository(session)
+        booking_repo = BookingRepository(session)
+        service = BookingService(route_repo, booking_repo, session)
+        f3_before = session.query(Flight).filter(Flight.flight_id == 3).one().available_seats
+        f4_before = session.query(Flight).filter(Flight.flight_id == 4).one().available_seats
+        service.book(self._make_request(route_id=3))
+        session.expire_all()
+        assert session.query(Flight).filter(Flight.flight_id == 3).one().available_seats == f3_before - 1
+        assert session.query(Flight).filter(Flight.flight_id == 4).one().available_seats == f4_before - 1
 
     def test_pnr_uniqueness(self, session, seed_data):
         """Each booking gets a distinct PNR."""
