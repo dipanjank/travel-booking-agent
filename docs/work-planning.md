@@ -7,7 +7,6 @@ Set up the foundational AWS infrastructure in **eu-west-1** required to deploy t
 ### Story 1: Create Terraform State Bucket and Deployment Role
 
 - [ ] Create an S3 bucket for Terraform remote state with versioning and encryption enabled.
-- [ ] Create a DynamoDB table for state locking.
 - [ ] Create an IAM deployment role that Terraform will assume to provision resources.
 
 ### Story 2: Create ECR Repositories
