@@ -45,9 +45,16 @@ Two-tier network using [`terraform-aws-modules/vpc/aws`](https://registry.terraf
 
 Two AZs (`eu-west-1a`, `eu-west-1b`), single NAT gateway, DNS enabled.
 
+### Public ALB (`alb.tf`)
+
+Internet-facing Application Load Balancer in the public subnets:
+
+- **Security Group** — allows inbound HTTP (80) and HTTPS (443) from anywhere
+- **HTTP Listener** — port 80 with a default fixed-response (target groups and routing rules added with ECS services)
+
 ### SSM Parameters (`ssm.tf`)
 
-Network configuration stored in SSM Parameter Store:
+Network and ALB configuration stored in SSM Parameter Store:
 
 | Parameter                                 | Type       |
 |-------------------------------------------|------------|
@@ -55,6 +62,10 @@ Network configuration stored in SSM Parameter Store:
 | `/${project_name}/vpc/cidr`               | String     |
 | `/${project_name}/vpc/public-subnet-ids`  | StringList |
 | `/${project_name}/vpc/private-subnet-ids` | StringList |
+| `/${project_name}/alb/dns-name`           | String     |
+| `/${project_name}/alb/arn`                | String     |
+| `/${project_name}/alb/http-listener-arn`  | String     |
+| `/${project_name}/alb/security-group-id`  | String     |
 
 ### ECR Repositories (`ecr.tf`)
 
@@ -84,6 +95,10 @@ All repositories have mutable tags, force delete enabled, and a lifecycle policy
 | `vpc_id`              | ID of the VPC                             |
 | `public_subnet_ids`   | IDs of the public subnets                 |
 | `private_subnet_ids`  | IDs of the private subnets                |
+| `alb_arn`             | ARN of the ALB                            |
+| `alb_dns_name`        | DNS name of the ALB                       |
+| `alb_http_listener_arn` | ARN of the ALB HTTP listener            |
+| `alb_security_group_id` | ID of the ALB security group            |
 
 ## CI/CD
 
