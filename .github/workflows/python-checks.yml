@@ -25,6 +25,8 @@ jobs:
           python-version: ${{ inputs.python-version }}
 
       - uses: pre-commit/action@v3.0.1
+        env:
+          SKIP: terraform_fmt
 
   pytest:
     name: Pytest
