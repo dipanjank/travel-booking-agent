@@ -6,8 +6,8 @@ Set up the foundational AWS infrastructure in **eu-west-1** required to deploy t
 
 ### Story 1: Create Terraform State Bucket and Deployment Role
 
-- [ ] Create an S3 bucket for Terraform remote state with versioning and encryption enabled.
-- [ ] Create an IAM deployment role that Terraform will assume to provision resources.
+- [x] Create an S3 bucket for Terraform remote state with versioning and encryption enabled.
+- [x] Create an IAM deployment role that Terraform will assume to provision resources.
 
 ### Story 2: Create ECR Repositories
 
@@ -47,7 +47,7 @@ Set up CI/CD pipelines using GitHub Actions for infrastructure deployment and co
 
 ### Story 1: Terraform Deployment Workflow
 
-- [ ] Create a GitHub Actions workflow to plan and apply Terraform changes.
+- [x] Create a GitHub Actions workflow to plan and apply Terraform changes.
 
 ### Story 2: MCP Server ECR Image Build and Push Workflow
 
