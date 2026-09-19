@@ -13,8 +13,9 @@ Set up the foundational python FastMCP project in the `booking-mcp-server`.
 
 Implement tools exposed by the MCP server.
 
--[ ] Implement search_flights tool
--[ ] Implement book_flight tool
+- [x] Implement search_flights tool
+- [x] Implement book_flight tool
+- [ ] Add pytest tests
 
 ## Epic: Bootstrap Infrastructure
 

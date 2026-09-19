@@ -30,10 +30,12 @@ CREATE TABLE flights (
 
 -- routes
 CREATE TABLE routes (
-    route_id        SERIAL PRIMARY KEY,
-    total_duration  INT NOT NULL,
-    total_price     DECIMAL(10, 2) NOT NULL,
-    num_stops       INT NOT NULL
+    route_id            SERIAL PRIMARY KEY,
+    departure_airport   CHAR(3) NOT NULL REFERENCES airports(iata_code),
+    arrival_airport     CHAR(3) NOT NULL REFERENCES airports(iata_code),
+    total_duration      INT NOT NULL,
+    total_price         DECIMAL(10, 2) NOT NULL,
+    num_stops           INT NOT NULL
 );
 
 -- route_flights (junction table linking routes to their flight legs)
