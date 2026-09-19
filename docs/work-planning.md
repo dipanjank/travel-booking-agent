@@ -22,8 +22,8 @@ As a developer, I can push container images to ECR for each service.
 
 As a developer, I can deploy services into a VPC with public and private subnets, with network configuration stored in SSM Parameter Store.
 
-- [ ] Create a VPC with public and private subnets across availability zones.
-- [ ] Store the following in SSM Parameter Store:
+- [x] Create a VPC with public and private subnets across availability zones.
+- [x] Store the following in SSM Parameter Store:
   - VPC CIDR and VPC ID
   - Public subnet CIDRs and IDs
   - Private subnet CIDRs and IDs

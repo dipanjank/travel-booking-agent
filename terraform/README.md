@@ -34,6 +34,28 @@ Keyless authentication for GitHub Actions via OIDC federation:
 - **Deployment Role** — `travel-booking-deployment-role` with `AdministratorAccess`
 - **Trust Policy** — scoped to the `dipanjank/travel-booking-agent` repository (owner and repo IDs in the subject claim)
 
+### VPC (`vpc.tf`)
+
+Two-tier network using [`terraform-aws-modules/vpc/aws`](https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws) ~> 5.0:
+
+| Subnet tier | CIDRs                          | Purpose           |
+|-------------|--------------------------------|-------------------|
+| Public      | `10.0.1.0/24`, `10.0.2.0/24`   | ALB               |
+| Private     | `10.0.10.0/24`, `10.0.11.0/24` | ECS services, RDS |
+
+Two AZs (`eu-west-1a`, `eu-west-1b`), single NAT gateway, DNS enabled.
+
+### SSM Parameters (`ssm.tf`)
+
+Network configuration stored in SSM Parameter Store:
+
+| Parameter                                 | Type       |
+|-------------------------------------------|------------|
+| `/${project_name}/vpc/id`                 | String     |
+| `/${project_name}/vpc/cidr`               | String     |
+| `/${project_name}/vpc/public-subnet-ids`  | StringList |
+| `/${project_name}/vpc/private-subnet-ids` | StringList |
+
 ### ECR Repositories (`ecr.tf`)
 
 Container registries for application images:
@@ -59,6 +81,9 @@ All repositories have mutable tags, force delete enabled, and a lifecycle policy
 | `state_bucket_name`   | Name of the S3 state bucket               |
 | `state_bucket_arn`    | ARN of the S3 state bucket                |
 | `deployment_role_arn` | ARN of the GitHub Actions deployment role |
+| `vpc_id`              | ID of the VPC                             |
+| `public_subnet_ids`   | IDs of the public subnets                 |
+| `private_subnet_ids`  | IDs of the private subnets                |
 
 ## CI/CD
 
