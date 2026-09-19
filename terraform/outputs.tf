@@ -47,3 +47,18 @@ output "alb_security_group_id" {
   description = "ID of the ALB security group"
   value       = aws_security_group.alb.id
 }
+
+output "rds_endpoint" {
+  description = "Endpoint of the RDS instance"
+  value       = module.rds.db_instance_address
+}
+
+output "rds_port" {
+  description = "Port of the RDS instance"
+  value       = module.rds.db_instance_port
+}
+
+output "database_security_group_id" {
+  description = "ID of the database security group"
+  value       = aws_security_group.database.id
+}

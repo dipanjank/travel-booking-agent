@@ -61,3 +61,43 @@ resource "aws_ssm_parameter" "alb_security_group_id" {
 
   tags = local.tags
 }
+
+resource "aws_ssm_parameter" "db_endpoint" {
+  name  = "/${var.project_name}/db/endpoint"
+  type  = "String"
+  value = module.rds.db_instance_address
+
+  tags = local.tags
+}
+
+resource "aws_ssm_parameter" "db_port" {
+  name  = "/${var.project_name}/db/port"
+  type  = "String"
+  value = module.rds.db_instance_port
+
+  tags = local.tags
+}
+
+resource "aws_ssm_parameter" "db_name" {
+  name  = "/${var.project_name}/db/name"
+  type  = "String"
+  value = replace(var.project_name, "-", "_")
+
+  tags = local.tags
+}
+
+resource "aws_ssm_parameter" "db_username" {
+  name  = "/${var.project_name}/db/username"
+  type  = "String"
+  value = module.rds.db_instance_username
+
+  tags = local.tags
+}
+
+resource "aws_ssm_parameter" "db_password" {
+  name  = "/${var.project_name}/db/password"
+  type  = "SecureString"
+  value = random_password.db.result
+
+  tags = local.tags
+}

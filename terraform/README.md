@@ -52,20 +52,34 @@ Internet-facing Application Load Balancer in the public subnets:
 - **Security Group** — allows inbound HTTP (80) and HTTPS (443) from anywhere
 - **HTTP Listener** — port 80 with a default fixed-response (target groups and routing rules added with ECS services)
 
+### Private RDS Database (`rds.tf`)
+
+PostgreSQL database using [`terraform-aws-modules/rds/aws`](https://registry.terraform.io/modules/terraform-aws-modules/rds/aws) ~> 6.0:
+
+- **Engine** — PostgreSQL 17, `db.t4g.micro`
+- **Storage** — 10 GB, auto-scaling up to 20 GB
+- **Networking** — private subnets, security group allows port 5432 from VPC CIDR
+- **Password** — random 24-character, stored in SSM
+
 ### SSM Parameters (`ssm.tf`)
 
-Network and ALB configuration stored in SSM Parameter Store:
+Network, ALB, and database configuration stored in SSM Parameter Store:
 
-| Parameter                                 | Type       |
-|-------------------------------------------|------------|
-| `/${project_name}/vpc/id`                 | String     |
-| `/${project_name}/vpc/cidr`               | String     |
-| `/${project_name}/vpc/public-subnet-ids`  | StringList |
-| `/${project_name}/vpc/private-subnet-ids` | StringList |
-| `/${project_name}/alb/dns-name`           | String     |
-| `/${project_name}/alb/arn`                | String     |
-| `/${project_name}/alb/http-listener-arn`  | String     |
-| `/${project_name}/alb/security-group-id`  | String     |
+| Parameter                                 | Type         |
+|-------------------------------------------|--------------|
+| `/${project_name}/vpc/id`                 | String       |
+| `/${project_name}/vpc/cidr`               | String       |
+| `/${project_name}/vpc/public-subnet-ids`  | StringList   |
+| `/${project_name}/vpc/private-subnet-ids` | StringList   |
+| `/${project_name}/alb/dns-name`           | String       |
+| `/${project_name}/alb/arn`                | String       |
+| `/${project_name}/alb/http-listener-arn`  | String       |
+| `/${project_name}/alb/security-group-id`  | String       |
+| `/${project_name}/db/endpoint`            | String       |
+| `/${project_name}/db/port`                | String       |
+| `/${project_name}/db/name`                | String       |
+| `/${project_name}/db/username`            | String       |
+| `/${project_name}/db/password`            | SecureString |
 
 ### ECR Repositories (`ecr.tf`)
 
@@ -87,18 +101,21 @@ All repositories have mutable tags, force delete enabled, and a lifecycle policy
 
 ## Outputs
 
-| Name                  | Description                               |
-|-----------------------|-------------------------------------------|
-| `state_bucket_name`   | Name of the S3 state bucket               |
-| `state_bucket_arn`    | ARN of the S3 state bucket                |
-| `deployment_role_arn` | ARN of the GitHub Actions deployment role |
-| `vpc_id`              | ID of the VPC                             |
-| `public_subnet_ids`   | IDs of the public subnets                 |
-| `private_subnet_ids`  | IDs of the private subnets                |
-| `alb_arn`             | ARN of the ALB                            |
-| `alb_dns_name`        | DNS name of the ALB                       |
-| `alb_http_listener_arn` | ARN of the ALB HTTP listener            |
-| `alb_security_group_id` | ID of the ALB security group            |
+| Name                         | Description                               |
+|------------------------------|-------------------------------------------|
+| `state_bucket_name`          | Name of the S3 state bucket               |
+| `state_bucket_arn`           | ARN of the S3 state bucket                |
+| `deployment_role_arn`        | ARN of the GitHub Actions deployment role |
+| `vpc_id`                     | ID of the VPC                             |
+| `public_subnet_ids`          | IDs of the public subnets                 |
+| `private_subnet_ids`         | IDs of the private subnets                |
+| `alb_arn`                    | ARN of the ALB                            |
+| `alb_dns_name`               | DNS name of the ALB                       |
+| `alb_http_listener_arn`      | ARN of the ALB HTTP listener              |
+| `alb_security_group_id`      | ID of the ALB security group              |
+| `rds_endpoint`               | Endpoint of the RDS instance              |
+| `rds_port`                   | Port of the RDS instance                  |
+| `database_security_group_id` | ID of the database security group         |
 
 ## CI/CD
 
