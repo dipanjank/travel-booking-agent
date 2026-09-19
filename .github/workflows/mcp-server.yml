@@ -1,0 +1,30 @@
+name: MCP Server
+
+on:
+  pull_request:
+    branches: [main]
+    paths: [mcp_server/**]
+  push:
+    branches: [main]
+    paths: [mcp_server/**]
+
+jobs:
+  python-checks:
+    uses: ./.github/workflows/python-checks.yml
+    with:
+      directory: mcp_server
+      python-version: "3.14"
+
+  docker:
+    uses: ./.github/workflows/docker-build.yml
+    needs:
+      - python-checks
+    with:
+      directory: mcp_server
+      ecr-repo: booking-mcp-server
+      aws-region: eu-west-1
+      role-to-assume: arn:aws:iam::381665779871:role/travel-booking-deployment-role
+      publish: ${{ github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: read
+      id-token: write

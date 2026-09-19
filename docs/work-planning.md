@@ -1,5 +1,22 @@
 # Work Planning
 
+## Epic: MCP Server
+
+### Story 1: Bootstrap `booking-mcp-server` Application
+
+Set up the foundational python FastMCP project in the `booking-mcp-server`.
+
+- [x] Scaffold python 3.14 Application with `pyproject.toml`
+- [x] Setup Docker Build
+
+### Story 2: Bootstrap `booking-mcp-server` Application
+
+Implement tools exposed by the MCP server.
+
+- [x] Implement search_flights tool
+- [x] Implement book_flight tool
+- [x] Add pytest tests
+
 ## Epic: Bootstrap Infrastructure
 
 Set up the foundational AWS infrastructure in **eu-west-1** required to deploy the travel booking agent.
@@ -63,7 +80,7 @@ As a developer, I can automatically plan and apply Terraform changes through a G
 
 As a developer, I can automatically build and push the MCP server image to ECR on code changes.
 
-- [ ] Create a GitHub Actions workflow to build and push the `booking-mcp-server` image to ECR.
+- [x] Create a GitHub Actions workflow to build and push the `booking-mcp-server` image to ECR.
 
 ### Story 3: QA App Image Build and Push Workflows
 
@@ -71,3 +88,10 @@ As a developer, I can automatically build and push the QA app images to ECR on c
 
 - [ ] Create a GitHub Actions workflow to build and push the QA app frontend image to ECR.
 - [ ] Create a GitHub Actions workflow to build and push the QA app backend image to ECR.
+
+### Story 4: Python Pre-commit and Pytest Workflow
+
+As a developer, I can automatically run pre-commit checks and pytest on pull requests to catch lint and test failures before merge.
+
+- [x] Create a GitHub Actions workflow that runs pre-commit hooks (ruff lint/format) on Python files.
+- [x] Add a pytest step to the workflow that runs the test suite against an in-memory SQLite database.
