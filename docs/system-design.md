@@ -9,13 +9,11 @@ The system consists of three components connected in a linear chain:
 │   Conversational QA App     │
 │   (FastAPI + LangGraph)     │
 │                             │
-│  - Chat UI (REST/WebSocket) │
+│  - Chat UI (REST)           │
 │  - LangChain ReAct agent    │
 │  - Conversation memory      │
-│  - OAuth 2.1 client         │
 └─────────────┬───────────────┘
               │ MCP over Streamable HTTP
-              │ Authorization: Bearer <token>
               v
 ┌─────────────────────────────┐
 │        MCP Server           │
@@ -23,7 +21,6 @@ The system consists of three components connected in a linear chain:
 │                             │
 │  - search_flights tool      │
 │  - book_flight tool         │
-│  - OAuth 2.1 JWT validation │
 └─────────────┬───────────────┘
               │ SQL (psycopg2 via SQLAlchemy)
               v
@@ -50,15 +47,8 @@ The MCP server is built with fastMCP and exposes two tools over Streamable HTTP 
 
 ```python
 from fastmcp import FastMCP
-from fastmcp.server.auth.providers.jwt import JWTVerifier
 
-auth = JWTVerifier(
-    jwks_uri="https://<cognito-domain>/.well-known/jwks.json",
-    issuer="https://cognito-idp.<region>.amazonaws.com/<pool-id>",
-    audience="<client-id>",
-)
-
-mcp = FastMCP("TravelBookingServer", auth=auth)
+mcp = FastMCP("TravelBookingServer")
 ```
 
 **Pydantic schemas for MCP tools:**
@@ -157,10 +147,9 @@ mcp_client = MultiServerMCPClient({
     "travel": {
         "transport": "http",
         "url": "http://mcp-server:8001/mcp",
-        "headers": {"Authorization": f"Bearer {access_token}"},
     },
 })
-tools = await mcp_client.get_tools()
+tools = mcp_client.get_tools()
 ```
 
 **Agent setup:**
@@ -198,8 +187,8 @@ from fastapi import FastAPI, Depends
 app = FastAPI()
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, user=Depends(authenticate_user)):
-    response = await agent.ainvoke(
+def chat(request: ChatRequest, user=Depends(authenticate_user)):
+    response = agent.invoke(
         {"messages": [{"role": "user", "content": request.message}]},
         {"configurable": {"thread_id": request.session_id}},
     )
@@ -210,25 +199,6 @@ async def chat(request: ChatRequest, user=Depends(authenticate_user)):
 ```
 
 **Authentication:** Simple username/password check. A single credential pair stored as environment variables. The `/chat` endpoint requires a valid session (cookie or token issued after login).
-
-**Token management for MCP:** The QA app obtains an OAuth 2.1 access token from AWS Cognito using the Client Credentials grant, caches it until expiry, and refreshes automatically.
-
-```python
-import httpx
-
-async def get_mcp_token() -> str:
-    """Obtain or refresh OAuth token from Cognito for MCP server access."""
-    response = await httpx.AsyncClient().post(
-        f"https://{COGNITO_DOMAIN}/oauth2/token",
-        data={
-            "grant_type": "client_credentials",
-            "client_id": MCP_CLIENT_ID,
-            "client_secret": MCP_CLIENT_SECRET,
-            "scope": "flight/search flight/book",
-        },
-    )
-    return response.json()["access_token"]
-```
 
 ### 2.3 Database (PostgreSQL on RDS)
 
@@ -335,40 +305,29 @@ SessionLocal = sessionmaker(engine, expire_on_commit=False)
 ## 3. Authentication Flow
 
 ```
-┌──────────┐         ┌──────────┐         ┌──────────┐         ┌──────────┐
-│   User   │         │  QA App  │         │ Cognito  │         │MCP Server│
-└────┬─────┘         └────┬─────┘         └────┬─────┘         └────┬─────┘
-     │  POST /login        │                    │                    │
-     │  (username+password) │                    │                    │
-     │────────────────────>│                    │                    │
-     │  session cookie     │                    │                    │
-     │<────────────────────│                    │                    │
-     │                     │                    │                    │
-     │  POST /chat         │                    │                    │
-     │  (message)          │                    │                    │
-     │────────────────────>│                    │                    │
-     │                     │  POST /oauth2/token│                    │
-     │                     │  (client_credentials)                   │
-     │                     │───────────────────>│                    │
-     │                     │  access_token      │                    │
-     │                     │<───────────────────│                    │
-     │                     │                    │                    │
-     │                     │  MCP tool call     │                    │
-     │                     │  Bearer <token>    │                    │
-     │                     │───────────────────────────────────────>│
-     │                     │                    │  validate JWT      │
-     │                     │                    │  (check signature, │
-     │                     │                    │   expiry, scopes)  │
-     │                     │  tool result       │                    │
-     │                     │<───────────────────────────────────────│
-     │  chat response      │                    │                    │
-     │<────────────────────│                    │                    │
+┌──────────┐         ┌──────────┐         ┌──────────┐
+│   User   │         │  QA App  │         │MCP Server│
+└────┬─────┘         └────┬─────┘         └────┬─────┘
+     │  POST /login        │                    │
+     │  (username+password) │                    │
+     │────────────────────>│                    │
+     │  session cookie     │                    │
+     │<────────────────────│                    │
+     │                     │                    │
+     │  POST /chat         │                    │
+     │  (message)          │                    │
+     │────────────────────>│                    │
+     │                     │  MCP tool call     │
+     │                     │───────────────────>│
+     │                     │  tool result       │
+     │                     │<───────────────────│
+     │  chat response      │                    │
+     │<────────────────────│                    │
 ```
 
-**Three independent auth boundaries:**
+**Auth boundaries:**
 1. **User -> QA App:** Username/password, session cookie. Single credential pair from environment variables.
-2. **QA App -> MCP Server:** OAuth 2.1 Client Credentials via AWS Cognito. QA app holds a client_id/client_secret, obtains short-lived Bearer tokens.
-3. **MCP Server -> PostgreSQL:** Database username/password, stored in AWS Secrets Manager, injected as environment variables at deploy time.
+2. **MCP Server -> PostgreSQL:** Database username/password, stored in AWS Secrets Manager, injected as environment variables at deploy time.
 
 ---
 
@@ -395,10 +354,10 @@ SessionLocal = sessionmaker(engine, expire_on_commit=False)
 └───────────┼─────────────────────────────────────────────┘
             │
             v
-   ┌─────────────────┐       ┌─────────────────┐
-   │  ALB             │       │  AWS Cognito    │
-   │  (internet-facing)│       │  (User Pool)    │
-   └─────────────────┘       └─────────────────┘
+   ┌─────────────────┐
+   │  ALB             │
+   │  (internet-facing)│
+   └─────────────────┘
 ```
 
 | Component        | AWS Service                     | Notes                                                       |
@@ -406,8 +365,7 @@ SessionLocal = sessionmaker(engine, expire_on_commit=False)
 | QA App           | ECS Fargate (public subnet)     | Behind ALB, serves chat UI and API                          |
 | MCP Server       | ECS Fargate (private subnet)    | Accessible only from QA App's security group                |
 | Database         | RDS PostgreSQL (private subnet) | Accessible only from MCP Server's security group            |
-| Auth (MCP)       | Cognito User Pool               | Client Credentials grant for machine-to-machine auth        |
-| Secrets          | Secrets Manager                 | DB credentials, Cognito client secret, QA login credentials |
+| Secrets          | Secrets Manager                 | DB credentials, QA login credentials                        |
 | Container images | ECR                             | One repo per service                                        |
 
 **Network rules:**
@@ -435,7 +393,7 @@ travel-booking-agent/
 │   │   └── booking.py       # book_flight tool
 │   ├── db/
 │   │   ├── __init__.py
-│   │   ├── engine.py        # SQLAlchemy async engine
+│   │   ├── engine.py        # SQLAlchemy engine
 │   │   ├── models.py        # ORM models
 │   │   └── queries.py       # Query functions
 │   └── Dockerfile
@@ -445,7 +403,7 @@ travel-booking-agent/
 │   ├── schemas.py           # Pydantic models (ChatRequest, ChatResponse)
 │   ├── agent.py             # LangGraph agent setup
 │   ├── auth.py              # Login + session management
-│   ├── mcp_client.py        # MCP client + token management
+│   ├── mcp_client.py        # MCP client setup
 │   ├── templates/           # Chat UI (Jinja2 or static)
 │   └── Dockerfile
 ├── db/
@@ -474,7 +432,7 @@ travel-booking-agent/
 | `langchain-mcp-adapters` | Load MCP tools into LangChain                           |
 | `langgraph`              | Agent framework (ReAct agent, checkpointing)            |
 | `langchain-anthropic`    | Claude model integration                                |
-| `httpx`                  | Async HTTP client (OAuth token requests)                |
+| `httpx`                  | HTTP client                                             |
 
 ---
 
