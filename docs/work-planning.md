@@ -32,9 +32,9 @@ As a developer, I can deploy services into a VPC with public and private subnets
 
 As a developer, I can route internet traffic to the QA app through a public Application Load Balancer, with its DNS name stored in SSM Parameter Store.
 
-- [ ] Create an internet-facing Application Load Balancer in the public subnets.
-- [ ] Configure security group to allow inbound HTTPS from the internet.
-- [ ] Store the ALB DNS name in SSM Parameter Store.
+- [x] Create an internet-facing Application Load Balancer in the public subnets.
+- [x] Configure security group to allow inbound HTTPS from the internet.
+- [x] Store the ALB DNS name in SSM Parameter Store.
 
 ### Story 5: Private RDS Database
 
