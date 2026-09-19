@@ -19,7 +19,7 @@ data "aws_iam_policy_document" "deployment_trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:dipanjank/travel-booking-agent:*"]
+      values   = ["repo:dipanjank@23024451/travel-booking-agent@1364918140:*"]
     }
 
     condition {
