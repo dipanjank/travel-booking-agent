@@ -15,7 +15,7 @@ Implement tools exposed by the MCP server.
 
 - [x] Implement search_flights tool
 - [x] Implement book_flight tool
-- [ ] Add pytest tests
+- [x] Add pytest tests
 
 ## Epic: Bootstrap Infrastructure
 
@@ -88,3 +88,10 @@ As a developer, I can automatically build and push the QA app images to ECR on c
 
 - [ ] Create a GitHub Actions workflow to build and push the QA app frontend image to ECR.
 - [ ] Create a GitHub Actions workflow to build and push the QA app backend image to ECR.
+
+### Story 4: Python Pre-commit and Pytest Workflow
+
+As a developer, I can automatically run pre-commit checks and pytest on pull requests to catch lint and test failures before merge.
+
+- [x] Create a GitHub Actions workflow that runs pre-commit hooks (ruff lint/format) on Python files.
+- [x] Add a pytest step to the workflow that runs the test suite against an in-memory SQLite database.
