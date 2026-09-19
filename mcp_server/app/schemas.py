@@ -1,4 +1,4 @@
-from datetime import date, datetime
+import datetime as dt
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class FlightSearchRequest(BaseModel):
     origin: str = Field(..., pattern=r"^[A-Z]{3}$", description="Departure airport IATA code")
     destination: str = Field(..., pattern=r"^[A-Z]{3}$", description="Arrival airport IATA code")
-    date: date | None = Field(None, description="Departure date")
+    date: dt.date | None = Field(None, description="Departure date")
     time_of_day: Literal["morning", "afternoon", "evening"] | None = None
     airline: str | None = Field(None, pattern=r"^[A-Z0-9]{2}$", description="Airline IATA code")
     max_price: float | None = Field(None, gt=0)
@@ -22,8 +22,8 @@ class FlightLeg(BaseModel):
     airline: str
     departure_airport: str
     arrival_airport: str
-    departure_time: datetime
-    arrival_time: datetime
+    departure_time: dt.datetime
+    arrival_time: dt.datetime
     duration_minutes: int
     cabin_class: str
 
@@ -41,7 +41,7 @@ class FlightSearchResult(BaseModel):
 
 class PassengerDetails(BaseModel):
     name: str = Field(..., min_length=1)
-    date_of_birth: date
+    date_of_birth: dt.date
     passport_number: str = Field(..., min_length=5)
 
 
@@ -59,4 +59,4 @@ class BookingConfirmation(BaseModel):
     passengers: list[PassengerDetails]
     total_price: float
     status: str
-    booked_at: datetime
+    booked_at: dt.datetime
