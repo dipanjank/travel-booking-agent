@@ -40,9 +40,9 @@ As a developer, I can route internet traffic to the QA app through a public Appl
 
 As a developer, I can connect the MCP server to a private PostgreSQL database, with connection parameters stored in SSM Parameter Store.
 
-- [ ] Create a PostgreSQL RDS instance in the private subnets.
-- [ ] Configure security group to allow inbound on port 5432 only from the MCP Server security group.
-- [ ] Store the following in SSM Parameter Store:
+- [x] Create a PostgreSQL RDS instance in the private subnets.
+- [x] Configure security group to allow inbound on port 5432 only from the MCP Server security group.
+- [x] Store the following in SSM Parameter Store:
   - Database endpoint
   - Database port
   - Database name
