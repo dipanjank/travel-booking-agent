@@ -1,5 +1,5 @@
 resource "aws_ecr_repository" "backend" {
-  name                 = "travel-booking-app"
+  name                 = "travel-booking-app-backend"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 
