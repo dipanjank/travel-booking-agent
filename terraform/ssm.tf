@@ -1,5 +1,5 @@
 resource "aws_ssm_parameter" "vpc_id" {
-  name  = "/${var.project_name}/vpc/id"
+  name  = "/${local.project_name}/vpc/id"
   type  = "String"
   value = module.vpc.vpc_id
 
@@ -7,7 +7,7 @@ resource "aws_ssm_parameter" "vpc_id" {
 }
 
 resource "aws_ssm_parameter" "vpc_cidr" {
-  name  = "/${var.project_name}/vpc/cidr"
+  name  = "/${local.project_name}/vpc/cidr"
   type  = "String"
   value = module.vpc.vpc_cidr_block
 
@@ -15,7 +15,7 @@ resource "aws_ssm_parameter" "vpc_cidr" {
 }
 
 resource "aws_ssm_parameter" "public_subnet_ids" {
-  name  = "/${var.project_name}/vpc/public-subnet-ids"
+  name  = "/${local.project_name}/vpc/public-subnet-ids"
   type  = "StringList"
   value = join(",", module.vpc.public_subnets)
 
@@ -23,7 +23,7 @@ resource "aws_ssm_parameter" "public_subnet_ids" {
 }
 
 resource "aws_ssm_parameter" "private_subnet_ids" {
-  name  = "/${var.project_name}/vpc/private-subnet-ids"
+  name  = "/${local.project_name}/vpc/private-subnet-ids"
   type  = "StringList"
   value = join(",", module.vpc.private_subnets)
 
@@ -31,7 +31,7 @@ resource "aws_ssm_parameter" "private_subnet_ids" {
 }
 
 resource "aws_ssm_parameter" "alb_dns_name" {
-  name  = "/${var.project_name}/alb/dns-name"
+  name  = "/${local.project_name}/alb/dns-name"
   type  = "String"
   value = aws_lb.main.dns_name
 
@@ -39,7 +39,7 @@ resource "aws_ssm_parameter" "alb_dns_name" {
 }
 
 resource "aws_ssm_parameter" "alb_arn" {
-  name  = "/${var.project_name}/alb/arn"
+  name  = "/${local.project_name}/alb/arn"
   type  = "String"
   value = aws_lb.main.arn
 
@@ -47,7 +47,7 @@ resource "aws_ssm_parameter" "alb_arn" {
 }
 
 resource "aws_ssm_parameter" "alb_listener_arn" {
-  name  = "/${var.project_name}/alb/http-listener-arn"
+  name  = "/${local.project_name}/alb/http-listener-arn"
   type  = "String"
   value = aws_lb_listener.http.arn
 
@@ -55,7 +55,7 @@ resource "aws_ssm_parameter" "alb_listener_arn" {
 }
 
 resource "aws_ssm_parameter" "alb_security_group_id" {
-  name  = "/${var.project_name}/alb/security-group-id"
+  name  = "/${local.project_name}/alb/security-group-id"
   type  = "String"
   value = aws_security_group.alb.id
 
@@ -63,7 +63,7 @@ resource "aws_ssm_parameter" "alb_security_group_id" {
 }
 
 resource "aws_ssm_parameter" "ecs_cluster_arn" {
-  name  = "/${var.project_name}/ecs/cluster-arn"
+  name  = "/${local.project_name}/ecs/cluster-arn"
   type  = "String"
   value = aws_ecs_cluster.main.arn
 
@@ -71,23 +71,23 @@ resource "aws_ssm_parameter" "ecs_cluster_arn" {
 }
 
 resource "aws_ssm_parameter" "ecs_cluster_name" {
-  name  = "/${var.project_name}/ecs/cluster-name"
+  name  = "/${local.project_name}/ecs/cluster-name"
   type  = "String"
   value = aws_ecs_cluster.main.name
 
   tags = local.tags
 }
 
-resource "aws_ssm_parameter" "service_discovery_namespace_id" {
-  name  = "/${var.project_name}/ecs/service-discovery-namespace-id"
-  type  = "String"
-  value = aws_service_discovery_private_dns_namespace.main.id
+resource "aws_ssm_parameter" "database_url" {
+  name  = "/${local.project_name}/db/url"
+  type  = "SecureString"
+  value = "postgresql+psycopg2://${module.rds.db_instance_username}:${random_password.db.result}@${module.rds.db_instance_address}:${module.rds.db_instance_port}/${replace(local.project_name, "-", "_")}"
 
   tags = local.tags
 }
 
 resource "aws_ssm_parameter" "db_endpoint" {
-  name  = "/${var.project_name}/db/endpoint"
+  name  = "/${local.project_name}/db/endpoint"
   type  = "String"
   value = module.rds.db_instance_address
 
@@ -95,7 +95,7 @@ resource "aws_ssm_parameter" "db_endpoint" {
 }
 
 resource "aws_ssm_parameter" "db_port" {
-  name  = "/${var.project_name}/db/port"
+  name  = "/${local.project_name}/db/port"
   type  = "String"
   value = module.rds.db_instance_port
 
@@ -103,15 +103,15 @@ resource "aws_ssm_parameter" "db_port" {
 }
 
 resource "aws_ssm_parameter" "db_name" {
-  name  = "/${var.project_name}/db/name"
+  name  = "/${local.project_name}/db/name"
   type  = "String"
-  value = replace(var.project_name, "-", "_")
+  value = replace(local.project_name, "-", "_")
 
   tags = local.tags
 }
 
 resource "aws_ssm_parameter" "db_username" {
-  name  = "/${var.project_name}/db/username"
+  name  = "/${local.project_name}/db/username"
   type  = "String"
   value = module.rds.db_instance_username
 
@@ -119,7 +119,7 @@ resource "aws_ssm_parameter" "db_username" {
 }
 
 resource "aws_ssm_parameter" "db_password" {
-  name  = "/${var.project_name}/db/password"
+  name  = "/${local.project_name}/db/password"
   type  = "SecureString"
   value = random_password.db.result
 

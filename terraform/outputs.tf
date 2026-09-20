@@ -58,16 +58,6 @@ output "ecs_cluster_name" {
   value       = aws_ecs_cluster.main.name
 }
 
-output "service_discovery_namespace_id" {
-  description = "ID of the Cloud Map private DNS namespace"
-  value       = aws_service_discovery_private_dns_namespace.main.id
-}
-
-output "service_discovery_namespace_name" {
-  description = "Name of the Cloud Map private DNS namespace"
-  value       = aws_service_discovery_private_dns_namespace.main.name
-}
-
 output "rds_endpoint" {
   description = "Endpoint of the RDS instance"
   value       = module.rds.db_instance_address

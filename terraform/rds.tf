@@ -4,14 +4,14 @@ resource "random_password" "db" {
 }
 
 resource "aws_db_subnet_group" "database" {
-  name       = "${var.project_name}-db-subnet-group"
+  name       = "${local.project_name}-db-subnet-group"
   subnet_ids = module.vpc.private_subnets
 
   tags = local.tags
 }
 
 resource "aws_security_group" "database" {
-  name        = "${var.project_name}-database-sg"
+  name        = "${local.project_name}-database-sg"
   description = "Allow inbound access to the database from the VPC"
   vpc_id      = module.vpc.vpc_id
 
@@ -37,7 +37,7 @@ module "rds" {
   source  = "terraform-aws-modules/rds/aws"
   version = "~> 6.0"
 
-  identifier = "${var.project_name}-db"
+  identifier = "${local.project_name}-db"
 
   engine               = "postgres"
   engine_version       = "17"
@@ -48,8 +48,8 @@ module "rds" {
   allocated_storage     = 10
   max_allocated_storage = 20
 
-  db_name  = replace(var.project_name, "-", "_")
-  username = "${replace(var.project_name, "-", "_")}_admin"
+  db_name  = replace(local.project_name, "-", "_")
+  username = "${replace(local.project_name, "-", "_")}_admin"
   port     = 5432
 
   manage_master_user_password = false

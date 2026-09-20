@@ -1,5 +1,5 @@
 resource "aws_security_group" "alb" {
-  name        = "${var.project_name}-alb-sg"
+  name        = "${local.project_name}-alb-sg"
   description = "Allow inbound HTTP/HTTPS to the ALB"
   vpc_id      = module.vpc.vpc_id
 
@@ -30,7 +30,7 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_lb" "main" {
-  name               = "${var.project_name}-alb"
+  name               = "${local.project_name}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]

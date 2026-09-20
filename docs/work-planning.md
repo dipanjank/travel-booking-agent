@@ -126,24 +126,24 @@ As a developer, I can connect the MCP server to a private PostgreSQL database, w
 As a developer, I have a shared ECS cluster to deploy all services into.
 
 - [x] Create an ECS cluster with Fargate capacity providers
-- [x] Store cluster ARN and namespace ID in SSM Parameter Store
+- [x] Store cluster ARN and name in SSM Parameter Store
 
 ### Story 7: ECS Service for MCP Server
 
-As a developer, I can deploy the MCP server as a Fargate service in private subnets, accessible only from the QA app backend.
+As a developer, I can deploy the MCP server as a Fargate service behind the ALB, reachable at `/book-mcp-server`.
 
-- [ ] Create ECS task definition for `booking-mcp-server` (Fargate, image from ECR, port 8001)
-- [ ] Inject database credentials from Secrets Manager as environment variables
-- [ ] Create ECS service in private subnets
-- [ ] Configure security group: allow inbound on port 8001 only from the backend security group, allow outbound to RDS on port 5432
-- [ ] Create CloudMap service discovery entry so the backend can resolve the MCP server by DNS name
+- [x] Create ECS task definition for `booking-mcp-server` (Fargate, image from ECR, port 8001)
+- [x] Inject database credentials from Secrets Manager as environment variables
+- [x] Create ECS service in private subnets
+- [x] Configure security group: allow inbound on port 8001 from the ALB security group, allow outbound to RDS on port 5432
+- [x] Create ALB target group and listener rule to route `/book-mcp-server/*` to the MCP server service
 
 ### Story 8: ECS Service for QA App Backend
 
 As a developer, I can deploy the QA app backend as a Fargate service behind the ALB.
 
 - [ ] Create ECS task definition for `qa-app-backend` (Fargate, image from ECR, port 8000)
-- [ ] Inject environment variables (QA login credentials from Secrets Manager, MCP server URL via service discovery)
+- [ ] Inject environment variables (QA login credentials from Secrets Manager, MCP server URL via ALB)
 - [ ] Create ECS service in public subnets
 - [ ] Configure security group: allow inbound on port 8000 from the ALB security group, allow outbound to MCP server on port 8001
 - [ ] Create ALB target group and listener rule to route `/api/*` to the backend service
