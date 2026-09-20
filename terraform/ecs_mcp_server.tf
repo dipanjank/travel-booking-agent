@@ -33,7 +33,7 @@ module "mcp_server_service" {
       readonlyRootFilesystem = false
 
       healthCheck = {
-        command     = ["CMD-SHELL", "cat < /dev/tcp/localhost/8001 || exit 1"]
+        command     = ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
         interval    = 30
         timeout     = 5
         retries     = 3
@@ -99,13 +99,13 @@ resource "aws_lb_target_group" "mcp_server" {
   target_type = "ip"
 
   health_check {
-    path                = "/mcp"
+    path                = "/health"
     port                = "traffic-port"
     healthy_threshold   = 2
     unhealthy_threshold = 3
     timeout             = 5
     interval            = 30
-    matcher             = "200-499"
+    matcher             = "200"
   }
 
   tags = local.tags
