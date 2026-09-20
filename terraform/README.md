@@ -50,7 +50,7 @@ Two AZs (`eu-west-1a`, `eu-west-1b`), single NAT gateway, DNS enabled.
 Internet-facing Application Load Balancer in the public subnets:
 
 - **Security Group** — allows inbound HTTP (80) and HTTPS (443) from anywhere
-- **HTTP Listener** — port 80, default action forwards to the frontend target group. Path-based rules route `/api/*` and `/book-mcp-server/*` to their respective backend services
+- **HTTP Listener** — port 80, default action forwards to the frontend target group. Path-based rules route `/api/*` and `/mcp` to their respective backend services
 
 ### Private RDS Database (`rds.tf`)
 
@@ -76,7 +76,7 @@ Fargate service for the booking MCP server, deployed in private subnets behind t
 - **Container** — port 8001, TCP health check on port 8001
 - **Secrets** — `DATABASE_URL` injected from SSM (full PostgreSQL connection string)
 - **Security Group** — inbound 8001 from ALB only, all outbound
-- **ALB Routing** — target group on port 8001, listener rule forwarding `/book-mcp-server/*` (priority 100)
+- **ALB Routing** — target group on port 8001, listener rule forwarding `/mcp` (priority 100)
 - **Logs** — CloudWatch log group `/ecs/travel-booking-mcp-server`, 7-day retention
 
 ### ECS QA App Backend Service (`ecs_backend.tf`)

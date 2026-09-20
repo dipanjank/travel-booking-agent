@@ -122,7 +122,7 @@ resource "aws_lb_listener_rule" "mcp_server" {
 
   condition {
     path_pattern {
-      values = ["/book-mcp-server/*"]
+      values = ["/mcp"]
     }
   }
 
