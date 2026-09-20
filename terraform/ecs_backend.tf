@@ -45,7 +45,7 @@ module "backend_service" {
       environment = [
         { name = "ADMIN_USERNAME", value = "admin" },
         { name = "ADMIN_EMAIL", value = "admin@travel-booking.io" },
-        { name = "MCP_SERVER_URL", value = "http://${aws_lb.main.dns_name}/book-mcp-server/mcp" },
+        { name = "MCP_SERVER_URL", value = "http://${aws_lb.main.dns_name}/mcp" },
         { name = "AWS_REGION", value = local.aws_region },
       ]
 
