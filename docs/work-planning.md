@@ -189,10 +189,10 @@ As a developer, I can deploy the QA app backend as a Fargate service behind the 
 
 As a developer, I can deploy the QA app frontend as a Fargate service behind the ALB.
 
-- [ ] Create ECS task definition for `qa-app-frontend` (Fargate, image from ECR, port 3000)
-- [ ] Create ECS service in public subnets
-- [ ] Configure security group: allow inbound on port 3000 from the ALB security group
-- [ ] Create ALB target group and listener rule to route `/*` (default) to the frontend service
+- [x] Create ECS task definition for `qa-app-frontend` (Fargate, image from ECR, port 3000)
+- [x] Create ECS service in private subnets
+- [x] Configure security group: allow inbound on port 3000 from the ALB security group, all outbound
+- [x] Create ALB target group and set as default action on the HTTP listener (catch-all for `/*`)
 
 ---
 
