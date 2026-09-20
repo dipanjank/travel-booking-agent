@@ -3,6 +3,7 @@ locals {
   project_name             = "travel-booking"
   mcp_server_image_version = "0.1.0"
   backend_image_version    = "0.1.0"
+  frontend_image_version   = "0.1.0"
 
   tags = {
     Project        = local.project_name

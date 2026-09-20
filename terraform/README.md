@@ -50,7 +50,7 @@ Two AZs (`eu-west-1a`, `eu-west-1b`), single NAT gateway, DNS enabled.
 Internet-facing Application Load Balancer in the public subnets:
 
 - **Security Group** — allows inbound HTTP (80) and HTTPS (443) from anywhere
-- **HTTP Listener** — port 80 with a default fixed-response (target groups and routing rules added with ECS services)
+- **HTTP Listener** — port 80, default action forwards to the frontend target group. Path-based rules route `/api/*` and `/book-mcp-server/*` to their respective backend services
 
 ### Private RDS Database (`rds.tf`)
 
@@ -90,6 +90,16 @@ Fargate service for the QA app backend, deployed in private subnets behind the A
 - **Security Group** — inbound 8000 from ALB only, all outbound
 - **ALB Routing** — target group on port 8000, listener rule forwarding `/api/*` (priority 200)
 - **Logs** — CloudWatch log group `/ecs/travel-booking-backend`, 7-day retention
+
+### ECS QA App Frontend Service (`ecs_frontend.tf`)
+
+Fargate service for the QA app frontend, deployed in private subnets behind the ALB:
+
+- **Task** — 256 CPU / 512 MB, image from `travel-booking-app-frontend` ECR repo
+- **Container** — port 3000, health check on `/`
+- **Security Group** — inbound 3000 from ALB only, all outbound
+- **ALB Routing** — target group on port 3000, set as the listener default action (catch-all for `/*`)
+- **Logs** — CloudWatch log group `/ecs/travel-booking-frontend`, 7-day retention
 
 ### SSM Parameters (`ssm.tf`)
 
@@ -139,6 +149,7 @@ All configuration is defined as locals (no input variables). Random passwords fo
 | `project_name`             | `travel-booking` |
 | `mcp_server_image_version` | `0.1.0`          |
 | `backend_image_version`    | `0.1.0`          |
+| `frontend_image_version`   | `0.1.0`          |
 
 ## Outputs
 
