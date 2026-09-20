@@ -29,11 +29,11 @@ module "frontend_service" {
       readonlyRootFilesystem = false
 
       healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
+        command     = ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
         interval    = 30
         timeout     = 5
         retries     = 3
-        startPeriod = 30
+        startPeriod = 10
       }
 
       logConfiguration = {
