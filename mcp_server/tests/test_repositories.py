@@ -204,7 +204,6 @@ class TestRouteRepositorySearch:
         # Only Route 1 matches all: July 15, 08:00 (morning), AA, $300, direct, economy
         assert route_ids == {1}
 
-
     def test_excludes_sold_out_direct_route(self, session, seed_data):
         """Exclude a direct route when its flight has no available seats."""
         flight = session.query(Flight).filter(Flight.flight_id == 1).one()
@@ -265,7 +264,7 @@ class TestBookingRepository:
     def test_create_booking(self, session, seed_data):
         """Create a booking and return it with an assigned ID."""
         repo = BookingRepository(session)
-        booking = repo.create(pnr="ABC123", route_id=1, contact_email="a@b.com", contact_phone="123")
+        booking = repo.create(pnr="ABC123", route_id=1, user_id="test-user-id")
         assert booking.booking_id is not None
         assert booking.pnr == "ABC123"
         assert booking.route_id == 1
@@ -273,28 +272,5 @@ class TestBookingRepository:
     def test_pnr_exists_true(self, session, seed_data):
         """Return True after a booking with that PNR has been created."""
         repo = BookingRepository(session)
-        repo.create(pnr="ABC123", route_id=1, contact_email="a@b.com", contact_phone="123")
+        repo.create(pnr="ABC123", route_id=1, user_id="test-user-id")
         assert repo.pnr_exists("ABC123") is True
-
-    def test_add_passenger(self, session, seed_data):
-        """Add a passenger to an existing booking."""
-        repo = BookingRepository(session)
-        booking = repo.create(pnr="DEF456", route_id=1, contact_email="a@b.com", contact_phone="123")
-        passenger = repo.add_passenger(
-            booking_id=booking.booking_id,
-            name="Jane Doe",
-            date_of_birth=date(1990, 1, 1),
-            passport_number="P1234567",
-        )
-        assert passenger.name == "Jane Doe"
-        assert passenger.booking_id == booking.booking_id
-
-    def test_add_multiple_passengers(self, session, seed_data):
-        """Add multiple passengers to the same booking."""
-        repo = BookingRepository(session)
-        booking = repo.create(pnr="GHJ789", route_id=1, contact_email="a@b.com", contact_phone="123")
-        repo.add_passenger(booking.booking_id, "Alice", date(1985, 5, 10), "PA111")
-        repo.add_passenger(booking.booking_id, "Bob", date(1987, 8, 20), "PB222")
-        session.commit()
-        session.refresh(booking)
-        assert len(booking.passengers) == 2

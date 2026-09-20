@@ -7,7 +7,7 @@ MCP server for flight search and booking, built with [fastMCP](https://github.co
 | Tool             | Input                  | Output                | Description                                  |
 |------------------|------------------------|-----------------------|----------------------------------------------|
 | `search_flights` | `FlightSearchRequest`  | `FlightSearchResult[]`| Search available routes between two airports |
-| `book_flight`    | `BookingRequest`       | `BookingConfirmation` | Book a route for one or more passengers      |
+| `book_flight`    | `BookingRequest`       | `BookingConfirmation` | Book a route for the authenticated user      |
 
 ### search_flights
 
@@ -24,7 +24,7 @@ Returns matching routes with their flight legs, total duration, number of stops,
 
 ### book_flight
 
-Accepts a `route_id` (from search results), passenger details (name, date of birth, passport number), and contact information. Creates a booking with a unique 6-character PNR and returns a confirmation with the full itinerary.
+Accepts a `route_id` (from search results) and `user_id` (authenticated user). Creates a booking with a unique 6-character PNR and returns a confirmation with the full itinerary.
 
 ## Architecture
 
@@ -40,11 +40,11 @@ MCP Tool call
 
 **Tools** (`app/tools/`) — MCP tool entry points. Create a database session, instantiate repositories and services via dependency injection, and delegate to the service layer.
 
-**Services** (`app/services/`) — Business logic. `FlightSearchService` converts route query results to response schemas. `BookingService` generates unique PNRs, orchestrates booking and passenger creation, and commits the transaction.
+**Services** (`app/services/`) — Business logic. `FlightSearchService` converts route query results to response schemas. `BookingService` generates unique PNRs, decrements seat availability, and commits the transaction.
 
-**Repositories** (`app/db/repositories.py`) — Data access. `RouteRepository` builds dynamic search queries with optional filters via private `_filter_by_*` methods. `BookingRepository` handles booking and passenger inserts.
+**Repositories** (`app/db/repositories.py`) — Data access. `RouteRepository` builds dynamic search queries with optional filters via private `_filter_by_*` methods. `BookingRepository` handles booking creation and PNR lookup.
 
-**Models** (`app/db/models.py`) — SQLAlchemy ORM models mapping to the database schema (airports, airlines, flights, routes, route_flights, bookings, passengers).
+**Models** (`app/db/models.py`) — SQLAlchemy ORM models mapping to the database schema (airports, airlines, flights, routes, route_flights, bookings).
 
 **Schemas** (`app/schemas.py`) — Pydantic models for MCP tool inputs and outputs.
 

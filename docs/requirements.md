@@ -28,12 +28,11 @@ Book a specific flight for one or more passengers.
 
 **Required parameters:**
 - Flight identifier (from search results)
-- Passenger details (name, date of birth, passport number for each passenger)
-- Contact information (email, phone)
+- User ID (authenticated user making the booking)
 
 **Response:** A confirmed booking containing:
 - PNR (Passenger Name Record) — a unique alphanumeric booking reference
-- Full itinerary — flight number(s), departure/arrival airports and times, passenger names, cabin class, and total price
+- Full itinerary — flight number(s), departure/arrival airports and times, cabin class, and total price
 
 ### 1c. Database Schema
 
@@ -45,8 +44,7 @@ A relational database backing the MCP server, designed for efficient query perfo
 - **airlines** — IATA code (PK), name
 - **flights** — flight ID (PK), airline code (FK), flight number, departure airport (FK), arrival airport (FK), departure time, arrival time, duration, cabin class, base price, available seats
 - **routes** — route ID (PK), ordered set of flight IDs representing a single- or multi-hop journey, total duration, total price, number of stops
-- **bookings** — booking ID (PK), PNR (unique), route ID (FK), contact email, contact phone, booking timestamp, status
-- **passengers** — passenger ID (PK), booking ID (FK), name, date of birth, passport number
+- **bookings** — booking ID (PK), PNR (unique), route ID (FK), user ID (FK), booking timestamp, status
 
 **Indexing considerations:**
 - Composite index on flights for (departure_airport, arrival_airport, departure_time) to support the primary search query

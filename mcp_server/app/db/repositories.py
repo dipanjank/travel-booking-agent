@@ -3,7 +3,7 @@ from datetime import datetime, time
 from sqlalchemy import extract
 from sqlalchemy.orm import Session
 
-from app.db.models import Booking, Flight, Passenger, Route, RouteFlight
+from app.db.models import Booking, Flight, Route, RouteFlight
 from app.schemas import FlightSearchRequest
 
 TIME_RANGES = {
@@ -102,7 +102,7 @@ class RouteRepository:
 
 
 class BookingRepository:
-    """Data access layer for bookings and passengers."""
+    """Data access layer for bookings."""
 
     def __init__(self, session: Session):
         """Initialise with a SQLAlchemy session."""
@@ -112,25 +112,13 @@ class BookingRepository:
         """Return True if a booking with the given PNR already exists."""
         return self._session.query(Booking).filter(Booking.pnr == pnr).first() is not None
 
-    def create(self, pnr: str, route_id: int, contact_email: str, contact_phone: str) -> Booking:
+    def create(self, pnr: str, route_id: int, user_id: str) -> Booking:
         """Insert a new booking and flush to obtain its ID."""
         booking = Booking(
             pnr=pnr,
             route_id=route_id,
-            contact_email=contact_email,
-            contact_phone=contact_phone,
+            user_id=user_id,
         )
         self._session.add(booking)
         self._session.flush()
         return booking
-
-    def add_passenger(self, booking_id: int, name: str, date_of_birth, passport_number: str) -> Passenger:
-        """Add a passenger record to an existing booking."""
-        passenger = Passenger(
-            booking_id=booking_id,
-            name=name,
-            date_of_birth=date_of_birth,
-            passport_number=passport_number,
-        )
-        self._session.add(passenger)
-        return passenger

@@ -31,7 +31,7 @@ The system consists of three components connected in a linear chain:
 │  users (QA app),            │
 │  airports, airlines,        │
 │  flights, routes,           │
-│  bookings, passengers       │
+│  bookings                   │
 └─────────────────────────────┘
 ```
 
@@ -229,20 +229,9 @@ class AgentService:
 | booking_id    | SERIAL       | PK                            |
 | pnr           | CHAR(6)      | UNIQUE, NOT NULL              |
 | route_id      | INT          | FK -> routes.route_id         |
-| contact_email | VARCHAR(255) | NOT NULL                      |
-| contact_phone | VARCHAR(20)  | NOT NULL                      |
+| user_id       | UUID         | NOT NULL, FK -> users.id      |
 | booked_at     | TIMESTAMPTZ  | NOT NULL, DEFAULT NOW()       |
 | status        | VARCHAR(20)  | NOT NULL, DEFAULT 'CONFIRMED' |
-
-**passengers**
-
-| Column          | Type         | Constraints               |
-|-----------------|--------------|---------------------------|
-| passenger_id    | SERIAL       | PK                        |
-| booking_id      | INT          | FK -> bookings.booking_id |
-| name            | VARCHAR(255) | NOT NULL                  |
-| date_of_birth   | DATE         | NOT NULL                  |
-| passport_number | VARCHAR(20)  | NOT NULL                  |
 
 **Indexes:**
 

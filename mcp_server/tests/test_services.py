@@ -1,11 +1,10 @@
-from datetime import date
 from unittest.mock import patch
 
 import pytest
 
 from app.db.models import Flight
 from app.db.repositories import BookingRepository, RouteRepository
-from app.schemas import BookingRequest, FlightSearchRequest, PassengerDetails
+from app.schemas import BookingRequest, FlightSearchRequest
 from app.services.booking import BookingService
 from app.services.search import FlightSearchService
 
@@ -75,11 +74,7 @@ class TestBookingService:
         """Build a valid BookingRequest."""
         return BookingRequest(
             route_id=route_id,
-            passengers=[
-                PassengerDetails(name="John Doe", date_of_birth=date(1990, 1, 15), passport_number="P9876543"),
-            ],
-            contact_email="john@example.com",
-            contact_phone="+1234567890",
+            user_id="test-user-id",
         )
 
     def test_book_returns_confirmation(self, session, seed_data):
@@ -92,35 +87,6 @@ class TestBookingService:
         assert confirmation.route_id == 1
         assert confirmation.status == "CONFIRMED"
         assert confirmation.total_price == 300.0
-
-    def test_book_creates_passengers(self, session, seed_data):
-        """Verify passengers are included in the confirmation."""
-        route_repo = RouteRepository(session)
-        booking_repo = BookingRepository(session)
-        service = BookingService(route_repo, booking_repo, session)
-        confirmation = service.book(self._make_request())
-        assert len(confirmation.passengers) == 1
-        assert confirmation.passengers[0].name == "John Doe"
-        assert confirmation.passengers[0].passport_number == "P9876543"
-
-    def test_book_multiple_passengers(self, session, seed_data):
-        """Book with multiple passengers."""
-        route_repo = RouteRepository(session)
-        booking_repo = BookingRepository(session)
-        service = BookingService(route_repo, booking_repo, session)
-        request = BookingRequest(
-            route_id=1,
-            passengers=[
-                PassengerDetails(name="Alice", date_of_birth=date(1985, 5, 10), passport_number="PA111"),
-                PassengerDetails(name="Bob", date_of_birth=date(1987, 8, 20), passport_number="PB222"),
-            ],
-            contact_email="alice@example.com",
-            contact_phone="+1111111111",
-        )
-        confirmation = service.book(request)
-        assert len(confirmation.passengers) == 2
-        names = {p.name for p in confirmation.passengers}
-        assert names == {"Alice", "Bob"}
 
     def test_book_includes_legs(self, session, seed_data):
         """Verify the confirmation includes flight leg details."""
@@ -151,7 +117,7 @@ class TestBookingService:
             service.book(self._make_request(route_id=999))
 
     def test_book_decrements_available_seats(self, session, seed_data):
-        """Booking reduces available_seats on each flight in the route."""
+        """Booking reduces available_seats on each flight in the route by 1."""
         route_repo = RouteRepository(session)
         booking_repo = BookingRepository(session)
         service = BookingService(route_repo, booking_repo, session)
@@ -161,47 +127,6 @@ class TestBookingService:
         session.expire_all()
         flight_after = session.query(Flight).filter(Flight.flight_id == 1).one()
         assert flight_after.available_seats == seats_before - 1
-
-    def test_book_decrements_seats_by_passenger_count(self, session, seed_data):
-        """Booking with multiple passengers decrements by the number of passengers."""
-        route_repo = RouteRepository(session)
-        booking_repo = BookingRepository(session)
-        service = BookingService(route_repo, booking_repo, session)
-        request = BookingRequest(
-            route_id=1,
-            passengers=[
-                PassengerDetails(name="Alice", date_of_birth=date(1985, 5, 10), passport_number="PA111"),
-                PassengerDetails(name="Bob", date_of_birth=date(1987, 8, 20), passport_number="PB222"),
-            ],
-            contact_email="a@example.com",
-            contact_phone="+1111111111",
-        )
-        flight_before = session.query(Flight).filter(Flight.flight_id == 1).one()
-        seats_before = flight_before.available_seats
-        service.book(request)
-        session.expire_all()
-        flight_after = session.query(Flight).filter(Flight.flight_id == 1).one()
-        assert flight_after.available_seats == seats_before - 2
-
-    def test_book_insufficient_seats(self, session, seed_data):
-        """Raise ValueError when a flight has fewer seats than passengers requested."""
-        flight = session.query(Flight).filter(Flight.flight_id == 1).one()
-        flight.available_seats = 1
-        session.commit()
-        route_repo = RouteRepository(session)
-        booking_repo = BookingRepository(session)
-        service = BookingService(route_repo, booking_repo, session)
-        request = BookingRequest(
-            route_id=1,
-            passengers=[
-                PassengerDetails(name="Alice", date_of_birth=date(1985, 5, 10), passport_number="PA111"),
-                PassengerDetails(name="Bob", date_of_birth=date(1987, 8, 20), passport_number="PB222"),
-            ],
-            contact_email="a@example.com",
-            contact_phone="+1111111111",
-        )
-        with pytest.raises(ValueError, match="1 seat"):
-            service.book(request)
 
     def test_book_no_seats(self, session, seed_data):
         """Raise ValueError when a flight has zero available seats."""
@@ -242,7 +167,6 @@ class TestBookingService:
         service = BookingService(route_repo, booking_repo, session)
 
         with patch("app.services.booking.random.choices") as mock_choices:
-            # First call returns a PNR, second call collides, third succeeds
             mock_choices.side_effect = [
                 list("AAAAAA"),  # first booking
                 list("AAAAAA"),  # collision

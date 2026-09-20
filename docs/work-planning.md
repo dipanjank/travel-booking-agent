@@ -103,8 +103,8 @@ As a user, I can search for flight information using natural language.
 As a user, I can book a flight and get a confirmation.
 
 **Subtask 4.1 — Backend: Booking tool**
-- [ ] Load `book_flight` as a LangChain tool via the MCP client
-- [ ] Ensure the agent can handle booking requests within the conversation flow (passenger details, confirmation)
+- [x] Load `book_flight` as a LangChain tool via the MCP client
+- [x] Ensure the agent can handle booking requests within the conversation flow (passenger details, confirmation)
 
 **Subtask 4.2 — Frontend: Booking in chat**
 - [ ] Display booking confirmations (PNR, itinerary) in the chat UI
