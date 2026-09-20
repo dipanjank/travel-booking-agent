@@ -84,8 +84,8 @@ Set up the conversational agent that handles multi-turn flight search and bookin
 
 Set up the SvelteKit project for the chat UI.
 
-- [ ] Scaffold SvelteKit app in `frontend/` with TypeScript
-- [ ] Setup Docker build (`frontend/Dockerfile`)
+- [x] Scaffold SvelteKit app in `frontend/` with TypeScript
+- [x] Setup Docker build (`frontend/Dockerfile`)
 
 ### Story 6: Chat UI
 
@@ -99,7 +99,7 @@ Build the chat interface in SvelteKit.
 
 ### Story 7: Add Tests
 
-- [ ] Add pytest tests for authentication (login, session validation, protected endpoint rejection)
+- [x] Add pytest tests for authentication (login, session validation, protected endpoint rejection)
 - [ ] Add pytest tests for the chat endpoint (mocked agent)
 - [ ] Add frontend tests (Vitest/Playwright)
 
@@ -209,7 +209,7 @@ As a developer, I can automatically build and push the MCP server image to ECR o
 
 As a developer, I can automatically build and push the QA app images to ECR on code changes.
 
-- [ ] Create a GitHub Actions workflow to build and push the QA app frontend image to ECR.
+- [x] Create a GitHub Actions workflow to build and push the QA app frontend image to ECR.
 - [x] Create a GitHub Actions workflow to build and push the QA app backend image to ECR.
 
 ### Story 4: Python Pre-commit and Pytest Workflow

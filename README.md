@@ -11,7 +11,8 @@ User -> ALB -> QA App (FastAPI + LangGraph) -> MCP Server (fastMCP) -> PostgreSQ
 | Component                             | Directory            | Description                                                                           |
 |---------------------------------------|----------------------|---------------------------------------------------------------------------------------|
 | [MCP Server](mcp_server/README.md)    | `mcp_server/`        | fastMCP server exposing `search_flights` and `book_flight` tools over Streamable HTTP |
-| [QA App](backend/README.md)           | `backend/`           | FastAPI web server with auth, user management, and conversational agent (planned)      |
+| [QA App Backend](backend/README.md)   | `backend/`           | FastAPI web server with auth, user management, and conversational agent (planned)      |
+| [QA App Frontend](frontend/README.md) | `frontend/`          | SvelteKit chat UI for flight search and booking                                        |
 | [Infrastructure](terraform/README.md) | `terraform/`         | Terraform modules for AWS deployment (VPC, ECS Fargate, RDS, ALB, ECR)                |
 | [CI/CD](.github/workflows/README.md)  | `.github/workflows/` | GitHub Actions workflows for linting, testing, and Docker image builds                |
 
@@ -25,7 +26,8 @@ User -> ALB -> QA App (FastAPI + LangGraph) -> MCP Server (fastMCP) -> PostgreSQ
 
 - **Language:** Python 3.14
 - **MCP Server:** fastMCP, SQLAlchemy 2.0, psycopg2
-- **QA App:** FastAPI, LangGraph, langchain-anthropic, langchain-mcp-adapters
+- **QA App Backend:** FastAPI, LangGraph, langchain-anthropic, langchain-mcp-adapters
+- **QA App Frontend:** SvelteKit, Svelte 5, TypeScript
 - **Database:** PostgreSQL (AWS RDS)
 - **Infrastructure:** Terraform, AWS (ECS Fargate, RDS, ALB, ECR, Secrets Manager)
 - **CI/CD:** GitHub Actions with OIDC-based AWS authentication
