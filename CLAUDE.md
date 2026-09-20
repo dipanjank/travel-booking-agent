@@ -15,7 +15,7 @@ Travel booking agent — two-service system for flight search/booking via natura
 - Python, FastAPI, uvicorn
 - fastMCP (MCP server), langchain-mcp-adapters (MCP client)
 - LangGraph + langchain-anthropic (conversational agent)
-- SQLAlchemy 2.0 + psycopg2 (database), Alembic (migrations)
+- SQLAlchemy 2.0 + psycopg2 (database)
 - AWS: ECS Fargate, RDS PostgreSQL, Secrets Manager, ECR
 
 ## Architecture

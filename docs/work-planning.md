@@ -25,22 +25,45 @@ Build the conversational QA app that lets users search and book flights via natu
 
 Set up the foundational FastAPI project in `backend/`.
 
-- [x] Scaffold `backend/backend/` package with `__init__.py`, `main.py` (FastAPI entry point), and `schemas.py` (ChatRequest, ChatResponse)
+- [x] Scaffold `backend/booking_agent/` package with `__init__.py`, `main.py` (FastAPI entry point), and `schemas.py` (ChatRequest, ChatResponse)
 - [x] Add backend dependencies to `pyproject.toml` (fastapi, uvicorn, langgraph, langchain-aws, langchain-mcp-adapters, httpx, boto3)
 - [x] Setup Docker build (`backend/Dockerfile`)
 
-### Story 2: Authentication
+### Story 2: Authentication & User Management
 
-Implement JWT-based authentication (same pattern as `knowledge-base-qa-webapp`).
+As a user, I can log in with a username and password so that I can access the chat interface. My session stays alive transparently via token refresh, and I can log out when done. Unauthenticated requests are rejected. As an admin, I can create, list, and delete users with role-based access control. JWT-based, database-backed, same pattern as `knowledge-base-qa-webapp`.
 
-- [ ] Add auth dependencies to `pyproject.toml` (`python-jose[cryptography]`, `bcrypt`)
-- [ ] Implement `utils/auth.py` with `hash_password`, `verify_password`, `create_access_token`, `create_refresh_token`, `decode_token` (HS256, `JWT_SECRET` from env)
-- [ ] Implement `schemas.py` auth models: `LoginRequest`, `TokenResponse`
-- [ ] Implement `routers/auth.py` with `POST /api/auth/login` (returns access token, sets refresh token as HttpOnly cookie), `POST /api/auth/refresh`, `POST /api/auth/logout`
-- [ ] Implement `dependencies.py` with `get_current_user` (decodes Bearer access token) and `get_refresh_token` (reads refresh token cookie)
-- [ ] Seed a single admin user at startup from env vars (`ADMIN_USERNAME`, `ADMIN_PASSWORD`), password hashed with bcrypt
-- [ ] Add `Depends(get_current_user)` guard on `/chat` endpoint
-- [ ] Configure CORS to allow requests from the frontend origin
+**Subtask 2.1 — Database layer and User model**
+- [x] Add database dependencies to `pyproject.toml` (`sqlalchemy`, `pydantic-settings`)
+- [x] Implement `database.py` with sync SQLAlchemy engine, `SessionLocal`, `Base`, and `get_db` generator
+- [x] Implement `models/user.py` with `User` ORM model (UUID PK, username, email, password_hash, role with CHECK constraint, timestamps)
+- [x] Add `Settings` via `pydantic-settings` for `JWT_SECRET`, `DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, token expiry settings
+
+**Subtask 2.2 — Auth utilities, schemas, and repositories**
+- [x] Add auth dependencies to `pyproject.toml` (`python-jose[cryptography]`, `bcrypt`)
+- [x] Implement `utils/auth.py`: `hash_password`, `verify_password` (bcrypt, 12 rounds), `create_access_token` (30 min, HS256), `create_refresh_token` (7 days, HS256), `decode_token`, `generate_password`
+- [x] Implement `schemas/auth.py`: `LoginRequest`, `TokenResponse`
+- [x] Implement `schemas/user.py`: `CreateUserRequest`, `CreateUserResponse`, `UserResponse`, `UserListResponse`, `MessageResponse`
+- [x] Implement `repositories/base.py` with `GenericRepository[T]` (sync CRUD)
+- [x] Implement `repositories/user_repository.py` with `UserRepository` extending `GenericRepository[User]`
+
+**Subtask 2.3 — Services and endpoints**
+- [x] Implement `services/auth_service.py` with `AuthService` (login, refresh — validates against DB)
+- [x] Implement `services/admin_service.py` with `AdminService` (create_user with random password, list_users, delete_user)
+- [x] `POST /api/auth/login` — validate credentials against DB, return access token in body, set refresh token as HttpOnly cookie
+- [x] `POST /api/auth/refresh` — decode refresh token from cookie, look up user in DB, issue new tokens
+- [x] `POST /api/auth/logout` — delete refresh token cookie
+- [x] `POST /api/admin/users` — create user (admin only), return one-time password
+- [x] `GET /api/admin/users` — list all users (admin only)
+- [x] `DELETE /api/admin/users/{user_id}` — delete user (admin only, cannot delete admins)
+
+**Subtask 2.4 — Endpoint protection and dependency injection**
+- [x] Implement `dependencies.py` with `get_current_user` (decodes Bearer token, looks up User in DB), `require_admin` (checks ADMIN_USER role), `get_refresh_token`
+- [x] Guard admin endpoints with `Depends(require_admin)`
+
+**Subtask 2.5 — Admin user seeding**
+- [x] On startup, create tables via `Base.metadata.create_all(engine)`
+- [x] Seed admin user from `ADMIN_USERNAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars if no ADMIN_USER exists in DB
 
 ### Story 3: MCP Client Integration
 
@@ -122,7 +145,7 @@ As a developer, I can route internet traffic to the QA app through a public Appl
 As a developer, I can connect the MCP server to a private PostgreSQL database, with connection parameters stored in SSM Parameter Store.
 
 - [x] Create a PostgreSQL RDS instance in the private subnets.
-- [x] Configure security group to allow inbound on port 5432 only from the MCP Server security group.
+- [x] Configure security group to allow inbound on port 5432 from the MCP Server and QA App Backend security groups.
 - [x] Store the following in SSM Parameter Store:
   - Database endpoint
   - Database port
@@ -150,9 +173,9 @@ As a developer, I can deploy the MCP server as a Fargate service behind the ALB,
 As a developer, I can deploy the QA app backend as a Fargate service behind the ALB.
 
 - [ ] Create ECS task definition for `qa-app-backend` (Fargate, image from ECR, port 8000)
-- [ ] Inject environment variables (QA login credentials from Secrets Manager, MCP server URL via ALB)
+- [ ] Inject environment variables (JWT secret, admin credentials, database URL from Secrets Manager, MCP server URL via ALB)
 - [ ] Create ECS service in public subnets
-- [ ] Configure security group: allow inbound on port 8000 from the ALB security group, allow outbound to MCP server on port 8001
+- [ ] Configure security group: allow inbound on port 8000 from the ALB security group, allow outbound to MCP server on port 8001 and to RDS on port 5432
 - [ ] Create ALB target group and listener rule to route `/api/*` to the backend service
 
 ### Story 9: ECS Service for QA App Frontend

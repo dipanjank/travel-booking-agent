@@ -9,31 +9,33 @@ The system consists of three components connected in a linear chain:
 │   Conversational QA App     │
 │   (FastAPI + LangGraph)     │
 │                             │
-│  - Chat UI (REST)           │
+│  - Auth & user management   │
+│  - Chat API (REST)          │
 │  - LangChain ReAct agent    │
 │  - Conversation memory      │
-└─────────────┬───────────────┘
-              │ MCP over Streamable HTTP
-              v
-┌─────────────────────────────┐
-│        MCP Server           │
-│       (fastMCP)             │
-│                             │
-│  - search_flights tool      │
-│  - book_flight tool         │
-└─────────────┬───────────────┘
-              │ SQL (psycopg2 via SQLAlchemy)
-              v
+└──────┬──────────────┬───────┘
+       │              │ MCP over Streamable HTTP
+       │ SQL          v
+       │    ┌─────────────────────────────┐
+       │    │        MCP Server           │
+       │    │       (fastMCP)             │
+       │    │                             │
+       │    │  - search_flights tool      │
+       │    │  - book_flight tool         │
+       │    └─────────────┬───────────────┘
+       │                  │ SQL (psycopg2 via SQLAlchemy)
+       v                  v
 ┌─────────────────────────────┐
 │     PostgreSQL (RDS)        │
 │                             │
+│  users (QA app),            │
 │  airports, airlines,        │
 │  flights, routes,           │
 │  bookings, passengers       │
 └─────────────────────────────┘
 ```
 
-**Key constraint:** The QA app never accesses the database directly. All data access goes through the MCP server's tools.
+**Database access:** The QA app accesses the database directly for authentication and user management (the `users` table). All flight and booking data access goes through the MCP server's tools.
 
 ---
 
@@ -45,124 +47,130 @@ The MCP server is built with fastMCP and exposes two tools over Streamable HTTP 
 
 ### 2.2 Conversational QA App (FastAPI + LangGraph)
 
-The QA app is a FastAPI server that serves the chat interface and runs a LangGraph ReAct agent backed by MCP tools.
+The QA app is a FastAPI server with database-backed authentication, role-based user management, and a LangGraph ReAct agent backed by MCP tools. It uses synchronous SQLAlchemy sessions and sync `def` route handlers.
 
-**MCP client setup:**
+**Layered architecture:**
 
-```python
-from langchain_mcp_adapters.client import MultiServerMCPClient
+- **Models** — SQLAlchemy ORM models (`User`)
+- **Repositories** — Data access layer (`GenericRepository[T]`, `UserRepository`)
+- **Services** — Business logic (`AuthService`, `AdminService`, `AgentService`)
+- **Routers** — FastAPI route handlers (`auth`, `admin`)
+- **Dependencies** — FastAPI dependency injection wiring
 
-mcp_client = MultiServerMCPClient({
-    "travel": {
-        "transport": "http",
-        "url": "http://mcp-server:8001/mcp",
-    },
-})
-tools = mcp_client.get_tools()
-```
-
-**Agent setup:**
+**Database setup (sync SQLAlchemy):**
 
 ```python
-from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.postgres import PostgresSaver
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-checkpointer = PostgresSaver(conn_string=POSTGRES_URL)
-
-agent = create_react_agent(
-    model="anthropic:claude-sonnet-4-20250514",
-    tools=tools,
-    checkpointer=checkpointer,
-)
+engine = create_engine(settings.database_url, pool_size=10, max_overflow=5)
+SessionLocal = sessionmaker(engine, expire_on_commit=False)
 ```
 
-**Pydantic schemas for QA App API:**
+**Application startup:** Tables are created via `Base.metadata.create_all(engine)`. An initial admin user is seeded from environment variables (`ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`) if no `ADMIN_USER` exists in the database.
+
+**User management:** Admin users (`ADMIN_USER` role) can create, list, and delete users via the `/api/admin/users` endpoints. New users receive a randomly generated one-time password. Two roles are supported: `ADMIN_USER` and `APPLICATION_USER`. Admin users cannot be deleted.
+
+**Admin endpoints:**
 
 ```python
-class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1)
-    session_id: str
+router = APIRouter(prefix="/api/admin", dependencies=[Depends(require_admin)])
 
-class ChatResponse(BaseModel):
-    reply: str
-    session_id: str
+@router.post("/users", status_code=201)
+def create_user(body: CreateUserRequest, service=Depends(get_admin_service)):
+    return service.create_user(body)
+
+@router.get("/users")
+def list_users(service=Depends(get_admin_service)):
+    return service.list_users()
+
+@router.delete("/users/{user_id}")
+def delete_user(user_id: str, service=Depends(get_admin_service)):
+    return service.delete_user(user_id)
 ```
 
-**FastAPI endpoints:**
-
-```python
-from fastapi import FastAPI, Depends
-
-app = FastAPI()
-
-@app.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest, user=Depends(authenticate_user)):
-    response = agent.invoke(
-        {"messages": [{"role": "user", "content": request.message}]},
-        {"configurable": {"thread_id": request.session_id}},
-    )
-    return ChatResponse(
-        reply=response["messages"][-1].content,
-        session_id=request.session_id,
-    )
-```
-
-**Authentication:** JWT-based authentication following the same pattern as `knowledge-base-qa-webapp`. A single admin user is seeded at startup from environment variables (`ADMIN_USERNAME`, `ADMIN_PASSWORD`). Passwords are hashed with bcrypt. Login returns a short-lived access token (Bearer) and sets a long-lived refresh token as an HttpOnly cookie.
-
-**Auth utilities:**
-
-```python
-from jose import jwt
-import bcrypt
-
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
-
-def verify_password(password: str, password_hash: str) -> bool:
-    return bcrypt.checkpw(password.encode(), password_hash.encode())
-
-def create_access_token(user_id: str) -> str:
-    payload = {"sub": user_id, "type": "access", "exp": datetime.utcnow() + timedelta(minutes=30)}
-    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
-
-def create_refresh_token(user_id: str) -> str:
-    payload = {"sub": user_id, "type": "refresh", "exp": datetime.utcnow() + timedelta(days=7)}
-    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
-```
+**Authentication:** JWT-based. Login validates credentials against the `users` table, returns a short-lived access token (30 min, Bearer header) and sets a long-lived refresh token (7 days, HttpOnly cookie). Passwords are hashed with bcrypt (12 rounds). Tokens are encoded with HS256 via `python-jose`.
 
 **Auth endpoints:**
 
 ```python
-@router.post("/api/auth/login", response_model=TokenResponse)
-async def login(request: LoginRequest, response: Response):
-    # Validate credentials, return access_token, set refresh_token cookie
+router = APIRouter(prefix="/api/auth")
 
-@router.post("/api/auth/refresh", response_model=TokenResponse)
-async def refresh(response: Response, token: str = Depends(get_refresh_token)):
-    # Decode refresh token cookie, issue new access + refresh tokens
+@router.post("/login", response_model=TokenResponse)
+def login(body: LoginRequest, response: Response, service=Depends(get_auth_service)):
+    token_response, refresh_token = service.login(body)
+    _set_refresh_cookie(response, refresh_token)
+    return token_response
 
-@router.post("/api/auth/logout")
-async def logout(response: Response):
-    # Delete refresh_token cookie
+@router.post("/refresh", response_model=TokenResponse)
+def refresh(response: Response, token=Depends(get_refresh_token), service=Depends(get_auth_service)):
+    token_response, new_refresh_token = service.refresh(token)
+    _set_refresh_cookie(response, new_refresh_token)
+    return token_response
+
+@router.post("/logout")
+def logout(response: Response, _=Depends(get_current_user)):
+    response.delete_cookie(key="refresh_token", path="/api/auth")
+    return {"message": "Logged out"}
 ```
 
 **Protected endpoint guard:**
 
 ```python
-async def get_current_user(
+def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-) -> str:
+    repo: UserRepository = Depends(get_user_repo),
+) -> User:
     payload = decode_token(credentials.credentials)
     if payload is None or payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Invalid token")
-    return payload["sub"]
+    user = repo.get_by_id(uuid.UUID(payload["sub"]))
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
+
+def require_admin(user: User = Depends(get_current_user)) -> User:
+    if user.role != "ADMIN_USER":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+```
+
+**MCP client and agent:** Managed by `AgentService`, which starts the MCP client and creates the ReAct agent during application startup, and tears them down on shutdown.
+
+```python
+class AgentService:
+    async def start(self) -> None:
+        self._mcp_client = MultiServerMCPClient({"travel": {"transport": "streamable_http", "url": settings.mcp_server_url}})
+        await self._mcp_client.__aenter__()
+        tools = self._mcp_client.get_tools()
+        checkpointer = PostgresSaver(conn_string=settings.checkpoint_postgres_url) if settings.checkpoint_postgres_url else None
+        self._agent = create_react_agent(model=settings.agent_model, tools=tools, checkpointer=checkpointer)
+
+    async def invoke(self, message: str, session_id: str) -> str:
+        result = await self._agent.ainvoke(
+            {"messages": [{"role": "user", "content": message}]},
+            {"configurable": {"thread_id": session_id}},
+        )
+        return result["messages"][-1].content
 ```
 
 ### 2.3 Database (PostgreSQL on RDS)
 
-**Schema** (SQL DDL in `sql/tables.sql`):
+**Schema:**
 
-**airports**
+**users** (managed by QA app via SQLAlchemy ORM)
+
+| Column        | Type         | Constraints                                              |
+|---------------|--------------|----------------------------------------------------------|
+| id            | UUID         | PK, default uuid4                                        |
+| username      | VARCHAR(50)  | UNIQUE, NOT NULL                                         |
+| email         | VARCHAR(255) | UNIQUE, NOT NULL                                         |
+| password_hash | VARCHAR(255) | NOT NULL                                                 |
+| role          | VARCHAR(20)  | NOT NULL, CHECK IN ('ADMIN_USER', 'APPLICATION_USER')    |
+| created_at    | TIMESTAMP    | NOT NULL, default now()                                  |
+| updated_at    | TIMESTAMP    | NOT NULL, default now(), on update now()                 |
+
+**airports** (SQL DDL in `sql/tables.sql`)
 
 | Column    | Type         | Constraints |
 |-----------|--------------|-------------|
@@ -262,41 +270,49 @@ SessionLocal = sessionmaker(engine, expire_on_commit=False)
 
 ---
 
-## 3. Authentication Flow
+## 3. Authentication & User Management Flow
 
 ```
-┌──────────┐         ┌──────────┐         ┌──────────┐
-│   User   │         │  QA App  │         │MCP Server│
-└────┬─────┘         └────┬─────┘         └────┬─────┘
-     │  POST /api/auth/login│                    │
-     │  (username+password) │                    │
-     │────────────────────>│                    │
-     │  access_token (body) │                    │
-     │  refresh_token (cookie)                   │
-     │<────────────────────│                    │
-     │                     │                    │
-     │  POST /chat         │                    │
-     │  Authorization:     │                    │
-     │    Bearer <token>   │                    │
-     │────────────────────>│                    │
-     │                     │  MCP tool call     │
-     │                     │───────────────────>│
-     │                     │  tool result       │
-     │                     │<───────────────────│
-     │  chat response      │                    │
-     │<────────────────────│                    │
-     │                     │                    │
-     │  POST /api/auth/refresh                   │
-     │  (refresh_token cookie)                   │
-     │────────────────────>│                    │
-     │  new access_token   │                    │
-     │  new refresh_token (cookie)               │
-     │<────────────────────│                    │
+┌──────────┐         ┌──────────┐         ┌──────────┐        ┌──────────┐
+│  Admin   │         │  QA App  │         │MCP Server│        │PostgreSQL│
+└────┬─────┘         └────┬─────┘         └────┬─────┘        └────┬─────┘
+     │  POST /api/auth/login│                    │                   │
+     │  (username+password) │                    │                   │
+     │────────────────────>│                    │                   │
+     │                     │  query users table  │                   │
+     │                     │─────────────────────────────────────── >│
+     │  access_token (body) │                    │                   │
+     │  refresh_token (cookie)                   │                   │
+     │<────────────────────│                    │                   │
+     │                     │                    │                   │
+     │  POST /api/admin/users                    │                   │
+     │  Authorization:     │                    │                   │
+     │    Bearer <token>   │                    │                   │
+     │  {username, email,  │                    │                   │
+     │   role}             │                    │                   │
+     │────────────────────>│                    │                   │
+     │                     │  insert into users  │                   │
+     │                     │─────────────────────────────────────── >│
+     │  {user + one-time   │                    │                   │
+     │   password}         │                    │                   │
+     │<────────────────────│                    │                   │
+     │                     │                    │                   │
+     │  POST /chat         │                    │                   │
+     │  Authorization:     │                    │                   │
+     │    Bearer <token>   │                    │                   │
+     │────────────────────>│                    │                   │
+     │                     │  MCP tool call     │                   │
+     │                     │───────────────────>│                   │
+     │                     │  tool result       │                   │
+     │                     │<───────────────────│                   │
+     │  chat response      │                    │                   │
+     │<────────────────────│                    │                   │
 ```
 
 **Auth boundaries:**
-1. **User -> QA App:** JWT-based. Access token (30 min, Bearer header) + refresh token (7 days, HttpOnly cookie). Single admin user seeded from environment variables, password hashed with bcrypt.
-2. **MCP Server -> PostgreSQL:** Database username/password, stored in AWS Secrets Manager, injected as environment variables at deploy time.
+1. **User -> QA App:** JWT-based. Access token (30 min, Bearer header) + refresh token (7 days, HttpOnly cookie). Users stored in the `users` table with bcrypt-hashed passwords. Initial admin seeded at startup from environment variables. Admin users can create additional users with role-based access control (`ADMIN_USER`, `APPLICATION_USER`).
+2. **QA App -> PostgreSQL:** Direct connection via SQLAlchemy (sync) for the `users` table. Credentials stored in AWS Secrets Manager.
+3. **MCP Server -> PostgreSQL:** Database username/password, stored in AWS Secrets Manager, injected as environment variables at deploy time.
 
 ---
 
@@ -311,16 +327,17 @@ SessionLocal = sessionmaker(engine, expire_on_commit=False)
 │  │  QA App         │──────>│  MCP Server     │         │
 │  │  (public subnet)│  MCP  │  (private subnet)│         │
 │  │  Port 8000      │       │  Port 8001      │         │
-│  └─────────────────┘       └────────┬────────┘         │
+│  └────────┬────────┘       └────────┬────────┘         │
 │           │                         │                   │
-│           │                         │ SQL               │
-│           │                         v                   │
+│           │ SQL (users)             │ SQL (flights,     │
+│           │                         │     bookings)     │
+│           v                         v                   │
 │           │                ┌─────────────────┐         │
-│           │                │  RDS PostgreSQL  │         │
-│           │                │  (private subnet)│         │
-│           │                └─────────────────┘         │
-│           │                                             │
-└───────────┼─────────────────────────────────────────────┘
+│           └───────────────>│  RDS PostgreSQL  │         │
+│                            │  (private subnet)│         │
+│                            └─────────────────┘         │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
             │
             v
    ┌─────────────────┐
@@ -339,9 +356,9 @@ SessionLocal = sessionmaker(engine, expire_on_commit=False)
 
 **Network rules:**
 - ALB accepts HTTPS from the internet, forwards to QA App on port 8000
-- QA App security group allows outbound to MCP Server on port 8001
+- QA App security group allows outbound to MCP Server on port 8001 and to RDS on port 5432
 - MCP Server security group allows inbound only from QA App, outbound to RDS on port 5432
-- RDS security group allows inbound only from MCP Server
+- RDS security group allows inbound from both QA App and MCP Server
 
 ---
 
@@ -351,7 +368,8 @@ SessionLocal = sessionmaker(engine, expire_on_commit=False)
 travel-booking-agent/
 ├── docs/
 │   ├── requirements.md
-│   └── system-design.md
+│   ├── system-design.md
+│   └── work-planning.md
 ├── mcp_server/
 │   ├── __init__.py
 │   ├── main.py              # FastMCP server entry point
@@ -367,21 +385,38 @@ travel-booking-agent/
 │   │   └── queries.py       # Query functions
 │   └── Dockerfile
 ├── backend/
-│   ├── backend/
+│   ├── booking_agent/
 │   │   ├── __init__.py
-│   │   ├── main.py          # FastAPI app entry point
-│   │   ├── schemas.py       # Pydantic models (ChatRequest, ChatResponse)
-│   │   ├── agent.py         # LangGraph agent setup
-│   │   ├── auth.py          # Login + session management
-│   │   └── mcp_client.py    # MCP client setup
+│   │   ├── main.py          # FastAPI app, lifespan, admin seeding
+│   │   ├── config.py         # pydantic-settings configuration
+│   │   ├── database.py       # SQLAlchemy engine, session, Base
+│   │   ├── dependencies.py   # FastAPI DI wiring and auth guards
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   └── user.py       # User ORM model
+│   │   ├── repositories/
+│   │   │   ├── base.py        # GenericRepository[T]
+│   │   │   └── user_repository.py
+│   │   ├── services/
+│   │   │   ├── admin_service.py   # User management logic
+│   │   │   ├── agent_service.py   # MCP client + ReAct agent lifecycle
+│   │   │   └── auth_service.py    # Login, refresh, token logic
+│   │   ├── routers/
+│   │   │   ├── admin.py       # /api/admin/users CRUD
+│   │   │   └── auth.py        # /api/auth login/refresh/logout
+│   │   ├── schemas/
+│   │   │   ├── __init__.py    # Re-exports all schemas
+│   │   │   ├── auth.py        # LoginRequest, TokenResponse
+│   │   │   ├── chat.py        # ChatRequest, ChatResponse
+│   │   │   └── user.py        # CreateUserRequest/Response, UserListResponse
+│   │   └── utils/
+│   │       └── auth.py        # JWT, bcrypt, password generation
+│   ├── pyproject.toml
 │   └── Dockerfile
-├── db/
-│   └── migrations/          # Alembic migrations
-│       ├── alembic.ini
-│       └── versions/
+├── sql/
+│   └── tables.sql           # DDL applied manually
 ├── scripts/
 │   └── seed_data.py         # Populate airports, airlines, sample flights
-├── pyproject.toml
 └── CLAUDE.md
 ```
 
@@ -392,18 +427,19 @@ travel-booking-agent/
 | Package                  | Purpose                                                 |
 |--------------------------|---------------------------------------------------------|
 | `pydantic`               | Schema validation for API, MCP tools, and data transfer |
+| `pydantic-settings`      | Environment variable configuration                      |
 | `fastmcp`                | MCP server framework                                    |
 | `fastapi`                | Web framework for QA app                                |
 | `uvicorn`                | ASGI server                                             |
-| `sqlalchemy`             | ORM and synchronous database access                     |
-| `psycopg2-binary`        | PostgreSQL driver                                       |
-| `alembic`                | Database migrations                                     |
+| `sqlalchemy`             | ORM and synchronous database access (both services)     |
+| `psycopg2-binary`        | PostgreSQL driver (MCP server)                          |
+| `psycopg`                | PostgreSQL driver (QA app)                              |
 | `langchain-mcp-adapters` | Load MCP tools into LangChain                           |
 | `langgraph`              | Agent framework (ReAct agent, checkpointing)            |
 | `langchain-anthropic`    | Claude model integration                                |
 | `httpx`                  | HTTP client                                             |
 | `python-jose`            | JWT encoding/decoding (HS256)                           |
-| `bcrypt`                 | Password hashing                                        |
+| `bcrypt`                 | Password hashing (12 rounds)                            |
 
 ---
 
