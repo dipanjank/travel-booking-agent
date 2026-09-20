@@ -1,0 +1,22 @@
+name: QA App Frontend
+
+on:
+  pull_request:
+    branches: [main]
+    paths: [frontend/**]
+  push:
+    branches: [main]
+    paths: [frontend/**]
+
+jobs:
+  docker:
+    uses: ./.github/workflows/docker-build.yml
+    with:
+      directory: frontend
+      ecr-repo: travel-booking-app-frontend
+      aws-region: eu-west-1
+      role-to-assume: arn:aws:iam::381665779871:role/travel-booking-deployment-role
+      publish: ${{ github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: read
+      id-token: write
