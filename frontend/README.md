@@ -10,10 +10,13 @@ SvelteKit chat UI for the travel booking agent. Communicates with the backend AP
 
 ## Pages
 
-| Route    | Description                                    | Auth     |
-|----------|------------------------------------------------|----------|
-| `/login` | Username/password login form                   | Public   |
-| `/`      | Home page (chat UI planned)                    | Required |
+| Route          | Description                                      | Auth     |
+|----------------|--------------------------------------------------|----------|
+| `/login`       | Username/password login form                     | Public   |
+| `/`            | Home page with menu cards                        | Required |
+| `/flights`     | Chat interface for flight search via agent       | Required |
+| `/bookings`    | Booking history (placeholder)                    | Required |
+| `/admin/users` | User management (create, list, delete)           | Admin    |
 
 Unauthenticated users are redirected to `/login` via a layout-level route guard.
 
@@ -21,7 +24,7 @@ Unauthenticated users are redirected to `/login` via a layout-level route guard.
 
 ### Auth Store (`lib/auth.svelte.ts`)
 
-Reactive auth state using Svelte 5 runes. Holds the access token and expiry timestamp, persisted to `sessionStorage` so state survives page reloads within a tab.
+Reactive auth state using Svelte 5 runes. Holds the access token, expiry timestamp, and user role (decoded from the JWT payload), persisted to `sessionStorage` so state survives page reloads within a tab. Exposes `isAdmin` for role-based UI visibility.
 
 ### API Wrapper (`lib/api.ts`)
 
@@ -33,6 +36,10 @@ All backend communication goes through this module:
   - Attaches `Authorization: Bearer <token>` header
   - Sends `credentials: 'include'` (for the HttpOnly refresh cookie)
   - On 401, attempts a silent refresh via `POST /api/auth/refresh` and retries once
+
+### Chat UI (`routes/flights/+page.svelte`)
+
+Conversational interface for flight search. Messages are sent to `POST /api/chat` via `apiFetch`. A `thread_id` (UUID) is generated per browser session and stored in `sessionStorage` to support multi-turn conversations. The UI shows user and assistant message bubbles with a loading indicator while the agent responds.
 
 ### Route Guard (`routes/+layout.ts`)
 
@@ -79,10 +86,16 @@ src/
     assets/          Static assets imported by components
   routes/
     +layout.ts       Route guard (redirect to /login if unauthenticated)
-    +layout.svelte   Root layout (nav bar with logout)
-    +page.svelte     Home page
+    +layout.svelte   Root layout (nav bar with links and logout)
+    +page.svelte     Home page (menu cards)
     login/
       +page.svelte   Login form
+    flights/
+      +page.svelte   Chat interface for flight search
+    bookings/
+      +page.svelte   Booking history (placeholder)
+    admin/users/
+      +page.svelte   User management (admin only)
   app.html           HTML shell
   app.d.ts           TypeScript declarations
 static/              Static assets served as-is

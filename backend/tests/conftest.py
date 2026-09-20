@@ -8,6 +8,7 @@ from unittest.mock import patch
 os.environ.setdefault("JWT_SECRET", "test-secret-key")
 os.environ.setdefault("ADMIN_PASSWORD", "test-admin-password")
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+os.environ.setdefault("MCP_SERVER_URL", "http://localhost:8001/mcp")
 
 # Patch create_engine before importing database.py so the module-level engine
 # creation uses SQLite without unsupported pool arguments.

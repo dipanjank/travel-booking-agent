@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     # Database
     database_url: str
 
+    # Agent
+    mcp_server_url: str
+    agent_model: str = "qwen.qwen3-next-80b-a3b"
+    aws_region: str = "eu-west-1"
+
     model_config = {"env_prefix": "", "case_sensitive": False}
 
 
