@@ -119,7 +119,7 @@ As a developer, I can store Terraform state remotely and deploy infrastructure v
 As a developer, I can push container images to ECR for each service.
 
 - [x] **Subtask 2.1:** Create ECR repository for `travel-booking-app-backend`.
-- [ ] **Subtask 2.2:** Create ECR repository for `travel-booking-app-frontend`.
+- [x] **Subtask 2.2:** Create ECR repository for `travel-booking-app-frontend`.
 - [x] **Subtask 2.3:** Create ECR repository for `booking-mcp-server`.
 
 ### Story 3: VPC and Subnets

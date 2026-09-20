@@ -106,10 +106,11 @@ Network, ALB, ECS, and database configuration stored in SSM Parameter Store:
 
 Container registries for application images:
 
-| Repository           | Description        |
-|----------------------|--------------------|
-| `travel-booking-app` | QA app service     |
-| `booking-mcp-server` | MCP server service |
+| Repository                     | Description        |
+|--------------------------------|--------------------|
+| `travel-booking-app`           | QA app backend     |
+| `travel-booking-app-frontend`  | QA app frontend    |
+| `booking-mcp-server`           | MCP server service |
 
 All repositories have mutable tags, force delete enabled, and a lifecycle policy that keeps the last 5 images.
 
