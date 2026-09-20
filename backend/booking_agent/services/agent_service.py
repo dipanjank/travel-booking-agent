@@ -20,6 +20,7 @@ class AgentService:
 
     def __init__(self) -> None:
         self._mcp_client: MultiServerMCPClient | None = None
+        self._checkpointer_ctx = None
         self._agent = None
 
     async def start(self) -> None:
@@ -40,7 +41,8 @@ class AgentService:
             region_name=settings.aws_region,
         )
 
-        checkpointer = AsyncPostgresSaver.from_conn_string(settings.database_url)
+        self._checkpointer_ctx = AsyncPostgresSaver.from_conn_string(settings.database_url)
+        checkpointer = await self._checkpointer_ctx.__aenter__()
         await checkpointer.setup()
 
         self._agent = create_react_agent(model=model, tools=tools, checkpointer=checkpointer)
@@ -55,7 +57,10 @@ class AgentService:
         return result["messages"][-1].content
 
     async def stop(self) -> None:
-        """Shut down the MCP client connection."""
+        """Shut down the MCP client and checkpointer connections."""
+        if self._checkpointer_ctx is not None:
+            await self._checkpointer_ctx.__aexit__(None, None, None)
+            self._checkpointer_ctx = None
         self._mcp_client = None
         self._agent = None
         logger.info("Agent service stopped")
