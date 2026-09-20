@@ -25,17 +25,21 @@ Build the conversational QA app that lets users search and book flights via natu
 
 Set up the foundational FastAPI project in `qa_app/backend/`.
 
-- [ ] Scaffold `qa_app/backend/` package with `__init__.py`, `main.py` (FastAPI entry point), and `schemas.py` (ChatRequest, ChatResponse)
-- [ ] Add backend dependencies to `pyproject.toml` (fastapi, uvicorn, langgraph, langchain-aws, langchain-mcp-adapters, httpx, boto3)
-- [ ] Setup Docker build (`qa_app/backend/Dockerfile`)
+- [x] Scaffold `qa_app/backend/` package with `__init__.py`, `main.py` (FastAPI entry point), and `schemas.py` (ChatRequest, ChatResponse)
+- [x] Add backend dependencies to `pyproject.toml` (fastapi, uvicorn, langgraph, langchain-aws, langchain-mcp-adapters, httpx, boto3)
+- [x] Setup Docker build (`qa_app/backend/Dockerfile`)
 
 ### Story 2: Authentication
 
-Implement simple username/password authentication with session cookies.
+Implement JWT-based authentication (same pattern as `knowledge-base-qa-webapp`).
 
-- [ ] Implement `auth.py` with login endpoint (`POST /login`) and session management
-- [ ] Store credentials as environment variables (single username/password pair)
-- [ ] Add `Depends(authenticate_user)` guard on protected endpoints
+- [ ] Add auth dependencies to `pyproject.toml` (`python-jose[cryptography]`, `bcrypt`)
+- [ ] Implement `utils/auth.py` with `hash_password`, `verify_password`, `create_access_token`, `create_refresh_token`, `decode_token` (HS256, `JWT_SECRET` from env)
+- [ ] Implement `schemas.py` auth models: `LoginRequest`, `TokenResponse`
+- [ ] Implement `routers/auth.py` with `POST /api/auth/login` (returns access token, sets refresh token as HttpOnly cookie), `POST /api/auth/refresh`, `POST /api/auth/logout`
+- [ ] Implement `dependencies.py` with `get_current_user` (decodes Bearer access token) and `get_refresh_token` (reads refresh token cookie)
+- [ ] Seed a single admin user at startup from env vars (`ADMIN_USERNAME`, `ADMIN_PASSWORD`), password hashed with bcrypt
+- [ ] Add `Depends(get_current_user)` guard on `/chat` endpoint
 - [ ] Configure CORS to allow requests from the frontend origin
 
 ### Story 3: MCP Client Integration
@@ -64,9 +68,11 @@ Set up the SvelteKit project for the chat UI.
 
 Build the chat interface in SvelteKit.
 
-- [ ] Create login page that authenticates against `POST /login`
+- [ ] Create auth store (Svelte writable) to hold access token and auth state
+- [ ] Create API wrapper (`lib/api.ts`) that attaches `Authorization: Bearer <token>`, sends `credentials: 'include'`, and auto-refreshes via `POST /api/auth/refresh` on 401
+- [ ] Create login page that authenticates against `POST /api/auth/login` and stores access token
 - [ ] Create chat page with message input and conversation history
-- [ ] Connect to backend `POST /chat` endpoint, handle session cookies
+- [ ] Add layout-level route guard to redirect unauthenticated users to `/login`
 
 ### Story 7: Add Tests
 

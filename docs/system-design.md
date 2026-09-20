@@ -107,7 +107,56 @@ def chat(request: ChatRequest, user=Depends(authenticate_user)):
     )
 ```
 
-**Authentication:** Simple username/password check. A single credential pair stored as environment variables. The `/chat` endpoint requires a valid session (cookie or token issued after login).
+**Authentication:** JWT-based authentication following the same pattern as `knowledge-base-qa-webapp`. A single admin user is seeded at startup from environment variables (`ADMIN_USERNAME`, `ADMIN_PASSWORD`). Passwords are hashed with bcrypt. Login returns a short-lived access token (Bearer) and sets a long-lived refresh token as an HttpOnly cookie.
+
+**Auth utilities:**
+
+```python
+from jose import jwt
+import bcrypt
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
+
+def verify_password(password: str, password_hash: str) -> bool:
+    return bcrypt.checkpw(password.encode(), password_hash.encode())
+
+def create_access_token(user_id: str) -> str:
+    payload = {"sub": user_id, "type": "access", "exp": datetime.utcnow() + timedelta(minutes=30)}
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+def create_refresh_token(user_id: str) -> str:
+    payload = {"sub": user_id, "type": "refresh", "exp": datetime.utcnow() + timedelta(days=7)}
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+```
+
+**Auth endpoints:**
+
+```python
+@router.post("/api/auth/login", response_model=TokenResponse)
+async def login(request: LoginRequest, response: Response):
+    # Validate credentials, return access_token, set refresh_token cookie
+
+@router.post("/api/auth/refresh", response_model=TokenResponse)
+async def refresh(response: Response, token: str = Depends(get_refresh_token)):
+    # Decode refresh token cookie, issue new access + refresh tokens
+
+@router.post("/api/auth/logout")
+async def logout(response: Response):
+    # Delete refresh_token cookie
+```
+
+**Protected endpoint guard:**
+
+```python
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> str:
+    payload = decode_token(credentials.credentials)
+    if payload is None or payload.get("type") != "access":
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return payload["sub"]
+```
 
 ### 2.3 Database (PostgreSQL on RDS)
 
@@ -219,14 +268,16 @@ SessionLocal = sessionmaker(engine, expire_on_commit=False)
 ┌──────────┐         ┌──────────┐         ┌──────────┐
 │   User   │         │  QA App  │         │MCP Server│
 └────┬─────┘         └────┬─────┘         └────┬─────┘
-     │  POST /login        │                    │
+     │  POST /api/auth/login│                    │
      │  (username+password) │                    │
      │────────────────────>│                    │
-     │  session cookie     │                    │
+     │  access_token (body) │                    │
+     │  refresh_token (cookie)                   │
      │<────────────────────│                    │
      │                     │                    │
      │  POST /chat         │                    │
-     │  (message)          │                    │
+     │  Authorization:     │                    │
+     │    Bearer <token>   │                    │
      │────────────────────>│                    │
      │                     │  MCP tool call     │
      │                     │───────────────────>│
@@ -234,10 +285,17 @@ SessionLocal = sessionmaker(engine, expire_on_commit=False)
      │                     │<───────────────────│
      │  chat response      │                    │
      │<────────────────────│                    │
+     │                     │                    │
+     │  POST /api/auth/refresh                   │
+     │  (refresh_token cookie)                   │
+     │────────────────────>│                    │
+     │  new access_token   │                    │
+     │  new refresh_token (cookie)               │
+     │<────────────────────│                    │
 ```
 
 **Auth boundaries:**
-1. **User -> QA App:** Username/password, session cookie. Single credential pair from environment variables.
+1. **User -> QA App:** JWT-based. Access token (30 min, Bearer header) + refresh token (7 days, HttpOnly cookie). Single admin user seeded from environment variables, password hashed with bcrypt.
 2. **MCP Server -> PostgreSQL:** Database username/password, stored in AWS Secrets Manager, injected as environment variables at deploy time.
 
 ---
@@ -344,6 +402,8 @@ travel-booking-agent/
 | `langgraph`              | Agent framework (ReAct agent, checkpointing)            |
 | `langchain-anthropic`    | Claude model integration                                |
 | `httpx`                  | HTTP client                                             |
+| `python-jose`            | JWT encoding/decoding (HS256)                           |
+| `bcrypt`                 | Password hashing                                        |
 
 ---
 
