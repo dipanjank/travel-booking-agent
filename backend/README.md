@@ -1,6 +1,10 @@
 # QA App Backend
 
-FastAPI web server for the travel booking agent. Handles user authentication, admin user management, and will serve the conversational chat interface backed by a LangGraph ReAct agent (not yet implemented).
+FastAPI web server for the travel booking agent. Handles
+
+- user authentication
+- admin user management
+- and will serve the conversational chat interface backed by a LangGraph ReAct agent (not yet implemented).
 
 ## API Endpoints
 
