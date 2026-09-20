@@ -3,7 +3,7 @@ import random
 from sqlalchemy.orm import Session
 
 from app.db.repositories import BookingRepository, RouteRepository
-from app.schemas import BookingConfirmation, BookingRequest, PassengerDetails
+from app.schemas import BookingConfirmation, BookingRequest
 from app.services.converters import flight_to_leg
 
 PNR_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -27,36 +27,25 @@ class BookingService:
         raise RuntimeError("Failed to generate unique PNR after 10 attempts")
 
     def book(self, request: BookingRequest) -> BookingConfirmation:
-        """Create a booking with passengers for the given route and return a confirmation."""
+        """Create a booking for the given route and return a confirmation."""
         route = self._route_repo.get_by_id(request.route_id)
-        num_passengers = len(request.passengers)
 
         for rf in route.route_flights:
-            if rf.flight.available_seats < num_passengers:
+            if rf.flight.available_seats < 1:
                 raise ValueError(
-                    f"Flight {rf.flight.flight_number} has {rf.flight.available_seats} seat(s) "
-                    f"but {num_passengers} requested"
+                    f"Flight {rf.flight.flight_number} has {rf.flight.available_seats} seat(s) available"
                 )
 
         for rf in route.route_flights:
-            rf.flight.available_seats -= num_passengers
+            rf.flight.available_seats -= 1
 
         pnr = self._generate_pnr()
 
         booking = self._booking_repo.create(
             pnr=pnr,
             route_id=request.route_id,
-            contact_email=request.contact_email,
-            contact_phone=request.contact_phone,
+            user_id=request.user_id,
         )
-
-        for p in request.passengers:
-            self._booking_repo.add_passenger(
-                booking_id=booking.booking_id,
-                name=p.name,
-                date_of_birth=p.date_of_birth,
-                passport_number=p.passport_number,
-            )
 
         self._session.commit()
         self._session.refresh(booking)
@@ -67,10 +56,6 @@ class BookingService:
             pnr=booking.pnr,
             route_id=route.route_id,
             legs=legs,
-            passengers=[
-                PassengerDetails(name=p.name, date_of_birth=p.date_of_birth, passport_number=p.passport_number)
-                for p in booking.passengers
-            ],
             total_price=float(route.total_price),
             status=booking.status,
             booked_at=booking.booked_at,

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, Numeric, String, func
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, func
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
@@ -70,22 +70,8 @@ class Booking(Base):
     booking_id = Column(Integer, primary_key=True, autoincrement=True)
     pnr = Column(String(6), unique=True, nullable=False)
     route_id = Column(Integer, ForeignKey("routes.route_id"), nullable=False)
-    contact_email = Column(String(255), nullable=False)
-    contact_phone = Column(String(20), nullable=False)
+    user_id = Column(String(36), nullable=False)
     booked_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     status = Column(String(20), nullable=False, server_default="CONFIRMED")
 
     route = relationship("Route", lazy="joined")
-    passengers = relationship("Passenger", back_populates="booking", lazy="joined")
-
-
-class Passenger(Base):
-    __tablename__ = "passengers"
-
-    passenger_id = Column(Integer, primary_key=True, autoincrement=True)
-    booking_id = Column(Integer, ForeignKey("bookings.booking_id"), nullable=False)
-    name = Column(String(255), nullable=False)
-    date_of_birth = Column(Date, nullable=False)
-    passport_number = Column(String(20), nullable=False)
-
-    booking = relationship("Booking", back_populates="passengers")

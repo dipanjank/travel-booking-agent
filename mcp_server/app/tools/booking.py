@@ -7,7 +7,7 @@ from app.services.booking import BookingService
 
 @mcp.tool
 def book_flight(request: BookingRequest) -> BookingConfirmation:
-    """Book a flight for one or more passengers. Returns PNR and itinerary."""
+    """Book a flight for the authenticated user. Returns PNR and itinerary."""
     with SessionLocal() as session:
         service = BookingService(
             route_repo=RouteRepository(session),

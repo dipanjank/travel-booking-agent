@@ -47,24 +47,15 @@ class FlightSearchResult(BaseModel):
 # --- Booking tool schemas ---
 
 
-class PassengerDetails(BaseModel):
-    name: str = Field(..., min_length=1)
-    date_of_birth: dt.date
-    passport_number: str = Field(..., min_length=5)
-
-
 class BookingRequest(BaseModel):
     route_id: int
-    passengers: list[PassengerDetails] = Field(..., min_length=1)
-    contact_email: str = Field(..., pattern=r"^[^@]+@[^@]+\.[^@]+$")
-    contact_phone: str
+    user_id: str = Field(..., min_length=1, description="ID of the user making the booking")
 
 
 class BookingConfirmation(BaseModel):
     pnr: str
     route_id: int
     legs: list[FlightLeg]
-    passengers: list[PassengerDetails]
     total_price: float
     status: str
     booked_at: dt.datetime

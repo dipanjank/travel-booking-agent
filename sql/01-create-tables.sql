@@ -62,19 +62,9 @@ CREATE TABLE bookings (
     booking_id      SERIAL PRIMARY KEY,
     pnr             CHAR(6) UNIQUE NOT NULL,
     route_id        INT NOT NULL REFERENCES routes(route_id),
-    contact_email   VARCHAR(255) NOT NULL,
-    contact_phone   VARCHAR(20) NOT NULL,
+    user_id         UUID NOT NULL REFERENCES users(id),
     booked_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     status          VARCHAR(20) NOT NULL DEFAULT 'CONFIRMED'
-);
-
--- passengers
-CREATE TABLE passengers (
-    passenger_id    SERIAL PRIMARY KEY,
-    booking_id      INT NOT NULL REFERENCES bookings(booking_id),
-    name            VARCHAR(255) NOT NULL,
-    date_of_birth   DATE NOT NULL,
-    passport_number VARCHAR(20) NOT NULL
 );
 
 -- Indexes
