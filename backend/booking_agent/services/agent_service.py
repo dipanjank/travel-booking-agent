@@ -32,8 +32,7 @@ class AgentService:
                 },
             }
         )
-        await self._mcp_client.__aenter__()
-        tools = self._mcp_client.get_tools()
+        tools = await self._mcp_client.get_tools()
         logger.info("Loaded %d MCP tools", len(tools))
 
         model = ChatBedrockConverse(
@@ -57,8 +56,6 @@ class AgentService:
 
     async def stop(self) -> None:
         """Shut down the MCP client connection."""
-        if self._mcp_client is not None:
-            await self._mcp_client.__aexit__(None, None, None)
-            self._mcp_client = None
+        self._mcp_client = None
         self._agent = None
         logger.info("Agent service stopped")
