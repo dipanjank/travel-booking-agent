@@ -83,20 +83,20 @@ As a user, I can log in with a username and password so that I can access the ch
 As a user, I can search for flight information using natural language.
 
 **Subtask 3.1 — Backend: MCP client and agent**
-- [ ] Implement `mcp_client.py` with `MultiServerMCPClient` configured for Streamable HTTP transport
-- [ ] Load `search_flights` as a LangChain tool
-- [ ] Implement `agent.py` with `create_react_agent` using `ChatBedrockConverse` (Claude Sonnet via Bedrock) and MCP tools
-- [ ] Configure PostgreSQL-backed conversation checkpointing (`PostgresSaver`)
-- [ ] Wire agent invocation into `POST /api/chat` endpoint with session-based `thread_id`
+- [x] Implement `mcp_client.py` with `MultiServerMCPClient` configured for Streamable HTTP transport
+- [x] Load `search_flights` as a LangChain tool
+- [x] Implement `agent.py` with `create_react_agent` using `ChatBedrockConverse` (Claude Sonnet via Bedrock) and MCP tools
+- [x] Configure PostgreSQL-backed conversation checkpointing (`PostgresSaver`)
+- [x] Wire agent invocation into `POST /api/chat` endpoint with session-based `thread_id`
 
 **Subtask 3.2 — Frontend: Chat UI**
-- [ ] Create chat page with message input and conversation history
-- [ ] Send user messages to `POST /api/chat` via `apiFetch` and display agent responses
-- [ ] Support multi-turn conversation (maintain `thread_id` per session)
+- [x] Create chat page with message input and conversation history
+- [x] Send user messages to `POST /api/chat` via `apiFetch` and display agent responses
+- [x] Support multi-turn conversation (maintain `thread_id` per session)
 
 **Subtask 3.3 — Tests**
 - [x] Add pytest tests for authentication (login, session validation, protected endpoint rejection)
-- [ ] Add pytest tests for the chat endpoint (mocked agent)
+- [x] Add pytest tests for the chat endpoint (mocked agent)
 
 ### Story 4: Flight Booking
 

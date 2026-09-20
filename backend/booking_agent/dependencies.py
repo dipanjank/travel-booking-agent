@@ -8,10 +8,26 @@ from booking_agent.database import get_db
 from booking_agent.models.user import User
 from booking_agent.repositories.user_repository import UserRepository
 from booking_agent.services.admin_service import AdminService
+from booking_agent.services.agent_service import AgentService
 from booking_agent.services.auth_service import AuthService
 from booking_agent.utils.auth import decode_token
 
 bearer_scheme = HTTPBearer()
+
+_agent_service: AgentService | None = None
+
+
+def set_agent_service(service: AgentService | None) -> None:
+    """Set the singleton AgentService instance (called from lifespan)."""
+    global _agent_service
+    _agent_service = service
+
+
+def get_agent_service() -> AgentService:
+    """Return the singleton AgentService. Raises 503 if not started."""
+    if _agent_service is None:
+        raise HTTPException(status_code=503, detail="Agent service not available")
+    return _agent_service
 
 
 # --- Repository factories ---
