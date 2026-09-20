@@ -12,6 +12,14 @@ module "backend_service" {
 
   enable_autoscaling = false
 
+  tasks_iam_role_statements = [
+    {
+      effect    = "Allow"
+      actions   = ["bedrock:InvokeModel"]
+      resources = ["arn:aws:bedrock:${local.aws_region}::foundation-model/*"]
+    },
+  ]
+
   task_exec_ssm_param_arns = [
     aws_ssm_parameter.backend_database_url.arn,
     aws_ssm_parameter.backend_jwt_secret.arn,
