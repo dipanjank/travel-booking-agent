@@ -48,6 +48,26 @@ output "alb_security_group_id" {
   value       = aws_security_group.alb.id
 }
 
+output "ecs_cluster_arn" {
+  description = "ARN of the ECS cluster"
+  value       = aws_ecs_cluster.main.arn
+}
+
+output "ecs_cluster_name" {
+  description = "Name of the ECS cluster"
+  value       = aws_ecs_cluster.main.name
+}
+
+output "service_discovery_namespace_id" {
+  description = "ID of the Cloud Map private DNS namespace"
+  value       = aws_service_discovery_private_dns_namespace.main.id
+}
+
+output "service_discovery_namespace_name" {
+  description = "Name of the Cloud Map private DNS namespace"
+  value       = aws_service_discovery_private_dns_namespace.main.name
+}
+
 output "rds_endpoint" {
   description = "Endpoint of the RDS instance"
   value       = module.rds.db_instance_address
