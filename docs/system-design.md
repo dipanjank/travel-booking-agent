@@ -366,14 +366,14 @@ travel-booking-agent/
 │   │   ├── models.py        # ORM models
 │   │   └── queries.py       # Query functions
 │   └── Dockerfile
-├── qa_app/
-│   ├── __init__.py
-│   ├── main.py              # FastAPI app entry point
-│   ├── schemas.py           # Pydantic models (ChatRequest, ChatResponse)
-│   ├── agent.py             # LangGraph agent setup
-│   ├── auth.py              # Login + session management
-│   ├── mcp_client.py        # MCP client setup
-│   ├── templates/           # Chat UI (Jinja2 or static)
+├── backend/
+│   ├── backend/
+│   │   ├── __init__.py
+│   │   ├── main.py          # FastAPI app entry point
+│   │   ├── schemas.py       # Pydantic models (ChatRequest, ChatResponse)
+│   │   ├── agent.py         # LangGraph agent setup
+│   │   ├── auth.py          # Login + session management
+│   │   └── mcp_client.py    # MCP client setup
 │   └── Dockerfile
 ├── db/
 │   └── migrations/          # Alembic migrations

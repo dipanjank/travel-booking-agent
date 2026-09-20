@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Travel booking agent — two-service system for flight search/booking via natural language conversation.
 
 - **MCP Server** (`mcp_server/`): Built with fastMCP, exposes `search_flights` and `book_flight` tools over Streamable HTTP. Connects to PostgreSQL.
-- **QA App** (`qa_app/`): FastAPI web server with a LangGraph ReAct agent that calls MCP tools. Serves the chat interface.
+- **QA App** (`backend/`): FastAPI web server with a LangGraph ReAct agent that calls MCP tools. Serves the chat interface.
 - **Database**: PostgreSQL (RDS). Accessed only by the MCP server.
 
 ## Tech Stack

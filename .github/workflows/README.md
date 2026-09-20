@@ -11,6 +11,15 @@ Runs on pushes and pull requests to `main` when files under `mcp_server/` change
 | `python-checks` | Calls `python-checks.yml` — runs pre-commit hooks and pytest                                                                                       |
 | `docker`        | Calls `docker-build.yml` — builds and optionally pushes the Docker image to ECR. Runs after `python-checks` passes. Only pushes on merge to `main` |
 
+### QA App Backend (`qa-app-backend.yml`)
+
+Runs on pushes and pull requests to `main` when files under `backend/` change.
+
+| Job             | Description                                                                                                                                        |
+|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `python-checks` | Calls `python-checks.yml` — runs pre-commit hooks and pytest                                                                                       |
+| `docker`        | Calls `docker-build.yml` — builds and optionally pushes the Docker image to ECR. Runs after `python-checks` passes. Only pushes on merge to `main` |
+
 ### Terraform (`terraform.yml`)
 
 Runs on pushes and pull requests to `main` when files under `terraform/` change.

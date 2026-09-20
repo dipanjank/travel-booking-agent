@@ -21,13 +21,13 @@ Implement tools exposed by the MCP server.
 
 Build the conversational QA app that lets users search and book flights via natural language, backed by a LangGraph ReAct agent calling MCP tools.
 
-### Story 1: Bootstrap Backend (`qa_app/backend/`)
+### Story 1: Bootstrap Backend (`backend/`)
 
-Set up the foundational FastAPI project in `qa_app/backend/`.
+Set up the foundational FastAPI project in `backend/`.
 
-- [x] Scaffold `qa_app/backend/` package with `__init__.py`, `main.py` (FastAPI entry point), and `schemas.py` (ChatRequest, ChatResponse)
+- [x] Scaffold `backend/backend/` package with `__init__.py`, `main.py` (FastAPI entry point), and `schemas.py` (ChatRequest, ChatResponse)
 - [x] Add backend dependencies to `pyproject.toml` (fastapi, uvicorn, langgraph, langchain-aws, langchain-mcp-adapters, httpx, boto3)
-- [x] Setup Docker build (`qa_app/backend/Dockerfile`)
+- [x] Setup Docker build (`backend/Dockerfile`)
 
 ### Story 2: Authentication
 
@@ -57,12 +57,12 @@ Set up the conversational agent that handles multi-turn flight search and bookin
 - [ ] Configure PostgreSQL-backed conversation checkpointing (`PostgresSaver`)
 - [ ] Wire agent invocation into `POST /chat` endpoint with session-based `thread_id`
 
-### Story 5: Bootstrap Frontend (`qa_app/frontend/`)
+### Story 5: Bootstrap Frontend (`frontend/`)
 
 Set up the SvelteKit project for the chat UI.
 
-- [ ] Scaffold SvelteKit app in `qa_app/frontend/` with TypeScript
-- [ ] Setup Docker build (`qa_app/frontend/Dockerfile`)
+- [ ] Scaffold SvelteKit app in `frontend/` with TypeScript
+- [ ] Setup Docker build (`frontend/Dockerfile`)
 
 ### Story 6: Chat UI
 
@@ -95,8 +95,9 @@ As a developer, I can store Terraform state remotely and deploy infrastructure v
 
 As a developer, I can push container images to ECR for each service.
 
-- [x] **Subtask 2.1:** Create ECR repository for `travel-booking-app`.
-- [x] **Subtask 2.2:** Create ECR repository for `booking-mcp-server`.
+- [x] **Subtask 2.1:** Create ECR repository for `travel-booking-app-backend`.
+- [ ] **Subtask 2.2:** Create ECR repository for `travel-booking-app-frontend`.
+- [x] **Subtask 2.3:** Create ECR repository for `booking-mcp-server`.
 
 ### Story 3: VPC and Subnets
 
@@ -186,7 +187,7 @@ As a developer, I can automatically build and push the MCP server image to ECR o
 As a developer, I can automatically build and push the QA app images to ECR on code changes.
 
 - [ ] Create a GitHub Actions workflow to build and push the QA app frontend image to ECR.
-- [ ] Create a GitHub Actions workflow to build and push the QA app backend image to ECR.
+- [x] Create a GitHub Actions workflow to build and push the QA app backend image to ECR.
 
 ### Story 4: Python Pre-commit and Pytest Workflow
 
