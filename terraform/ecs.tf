@@ -1,5 +1,5 @@
 resource "aws_ecs_cluster" "main" {
-  name = "${var.project_name}-cluster"
+  name = "${local.project_name}-cluster"
 
   setting {
     name  = "containerInsights"
@@ -19,11 +19,4 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
     weight            = 1
     base              = 1
   }
-}
-
-resource "aws_service_discovery_private_dns_namespace" "main" {
-  name = "${var.project_name}.local"
-  vpc  = module.vpc.vpc_id
-
-  tags = local.tags
 }

@@ -61,25 +61,46 @@ PostgreSQL database using [`terraform-aws-modules/rds/aws`](https://registry.ter
 - **Networking** — private subnets, security group allows port 5432 from VPC CIDR
 - **Password** — random 24-character, stored in SSM
 
+### ECS Cluster (`ecs.tf`)
+
+Shared ECS cluster for all services:
+
+- **Cluster** — `travel-booking-cluster` with Fargate and Fargate Spot capacity providers
+- **Default Strategy** — Fargate with base of 1
+
+### ECS MCP Server Service (`ecs_mcp_server.tf`)
+
+Fargate service for the booking MCP server, deployed in private subnets behind the ALB:
+
+- **Task** — 512 CPU / 1024 MB, image from `booking-mcp-server` ECR repo
+- **Container** — port 8001, TCP health check on port 8001
+- **Secrets** — `DATABASE_URL` injected from SSM (full PostgreSQL connection string)
+- **Security Group** — inbound 8001 from ALB only, all outbound
+- **ALB Routing** — target group on port 8001, listener rule forwarding `/book-mcp-server/*` (priority 100)
+- **Logs** — CloudWatch log group `/ecs/travel-booking-mcp-server`, 7-day retention
+
 ### SSM Parameters (`ssm.tf`)
 
-Network, ALB, and database configuration stored in SSM Parameter Store:
+Network, ALB, ECS, and database configuration stored in SSM Parameter Store:
 
-| Parameter                                 | Type         |
-|-------------------------------------------|--------------|
-| `/${project_name}/vpc/id`                 | String       |
-| `/${project_name}/vpc/cidr`               | String       |
-| `/${project_name}/vpc/public-subnet-ids`  | StringList   |
-| `/${project_name}/vpc/private-subnet-ids` | StringList   |
-| `/${project_name}/alb/dns-name`           | String       |
-| `/${project_name}/alb/arn`                | String       |
-| `/${project_name}/alb/http-listener-arn`  | String       |
-| `/${project_name}/alb/security-group-id`  | String       |
-| `/${project_name}/db/endpoint`            | String       |
-| `/${project_name}/db/port`                | String       |
-| `/${project_name}/db/name`                | String       |
-| `/${project_name}/db/username`            | String       |
-| `/${project_name}/db/password`            | SecureString |
+| Parameter                                            | Type         |
+|------------------------------------------------------|--------------|
+| `/${project_name}/vpc/id`                            | String       |
+| `/${project_name}/vpc/cidr`                          | String       |
+| `/${project_name}/vpc/public-subnet-ids`             | StringList   |
+| `/${project_name}/vpc/private-subnet-ids`            | StringList   |
+| `/${project_name}/alb/dns-name`                      | String       |
+| `/${project_name}/alb/arn`                           | String       |
+| `/${project_name}/alb/http-listener-arn`             | String       |
+| `/${project_name}/alb/security-group-id`             | String       |
+| `/${project_name}/ecs/cluster-arn`                   | String       |
+| `/${project_name}/ecs/cluster-name`                  | String       |
+| `/${project_name}/db/url`                            | SecureString |
+| `/${project_name}/db/endpoint`                       | String       |
+| `/${project_name}/db/port`                           | String       |
+| `/${project_name}/db/name`                           | String       |
+| `/${project_name}/db/username`                       | String       |
+| `/${project_name}/db/password`                       | SecureString |
 
 ### ECR Repositories (`ecr.tf`)
 
@@ -92,30 +113,35 @@ Container registries for application images:
 
 All repositories have mutable tags, force delete enabled, and a lifecycle policy that keeps the last 5 images.
 
-## Variables
+## Locals (`main.tf`)
 
-| Name           | Description                | Default            |
-|----------------|----------------------------|--------------------|
-| `aws_region`   | AWS region                 | `eu-west-1`        |
-| `project_name` | Project name for resources | `travel-booking`   |
+All configuration is defined as locals (no input variables):
+
+| Name                       | Default          |
+|----------------------------|------------------|
+| `aws_region`               | `eu-west-1`      |
+| `project_name`             | `travel-booking` |
+| `mcp_server_image_version` | `0.1.0`          |
 
 ## Outputs
 
-| Name                         | Description                               |
-|------------------------------|-------------------------------------------|
-| `state_bucket_name`          | Name of the S3 state bucket               |
-| `state_bucket_arn`           | ARN of the S3 state bucket                |
-| `deployment_role_arn`        | ARN of the GitHub Actions deployment role |
-| `vpc_id`                     | ID of the VPC                             |
-| `public_subnet_ids`          | IDs of the public subnets                 |
-| `private_subnet_ids`         | IDs of the private subnets                |
-| `alb_arn`                    | ARN of the ALB                            |
-| `alb_dns_name`               | DNS name of the ALB                       |
-| `alb_http_listener_arn`      | ARN of the ALB HTTP listener              |
-| `alb_security_group_id`      | ID of the ALB security group              |
-| `rds_endpoint`               | Endpoint of the RDS instance              |
-| `rds_port`                   | Port of the RDS instance                  |
-| `database_security_group_id` | ID of the database security group         |
+| Name                           | Description                               |
+|--------------------------------|-------------------------------------------|
+| `state_bucket_name`            | Name of the S3 state bucket               |
+| `state_bucket_arn`             | ARN of the S3 state bucket                |
+| `deployment_role_arn`          | ARN of the GitHub Actions deployment role |
+| `vpc_id`                       | ID of the VPC                             |
+| `public_subnet_ids`            | IDs of the public subnets                 |
+| `private_subnet_ids`           | IDs of the private subnets                |
+| `alb_arn`                      | ARN of the ALB                            |
+| `alb_dns_name`                 | DNS name of the ALB                       |
+| `alb_http_listener_arn`        | ARN of the ALB HTTP listener              |
+| `alb_security_group_id`        | ID of the ALB security group              |
+| `ecs_cluster_arn`              | ARN of the ECS cluster                    |
+| `ecs_cluster_name`             | Name of the ECS cluster                   |
+| `rds_endpoint`                 | Endpoint of the RDS instance              |
+| `rds_port`                     | Port of the RDS instance                  |
+| `database_security_group_id`   | ID of the database security group         |
 
 ## CI/CD
 

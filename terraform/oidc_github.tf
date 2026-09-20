@@ -31,7 +31,7 @@ data "aws_iam_policy_document" "deployment_trust" {
 }
 
 resource "aws_iam_role" "deployment" {
-  name               = "${var.project_name}-deployment-role"
+  name               = "${local.project_name}-deployment-role"
   assume_role_policy = data.aws_iam_policy_document.deployment_trust.json
 
   tags = local.tags
