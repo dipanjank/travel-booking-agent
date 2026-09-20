@@ -21,33 +21,38 @@ Implement tools exposed by the MCP server.
 
 Build the conversational QA app that lets users search and book flights via natural language, backed by a LangGraph ReAct agent calling MCP tools.
 
-### Story 1: Bootstrap Backend (`backend/`)
+### Story 1: Bootstrap QA App
 
-Set up the foundational FastAPI project in `backend/`.
+Set up the foundational projects for the backend and frontend.
 
-- [x] Scaffold `backend/booking_agent/` package with `__init__.py`, `main.py` (FastAPI entry point), and `schemas.py` (ChatRequest, ChatResponse)
-- [x] Add backend dependencies to `pyproject.toml` (fastapi, uvicorn, langgraph, langchain-aws, langchain-mcp-adapters, httpx, boto3)
+**Subtask 1.1 — Backend**
+- [x] Scaffold `backend/booking_agent/` package with `__init__.py`, `main.py` (FastAPI entry point), and `pyproject.toml`
 - [x] Setup Docker build (`backend/Dockerfile`)
+
+**Subtask 1.2 — Frontend**
+- [x] Scaffold SvelteKit app in `frontend/` with TypeScript and Svelte 5 (runes mode)
+- [x] Configure `@sveltejs/adapter-node` for production Node.js builds
+- [x] Setup Docker build (`frontend/Dockerfile`)
 
 ### Story 2: Authentication & User Management
 
-As a user, I can log in with a username and password so that I can access the chat interface. My session stays alive transparently via token refresh, and I can log out when done. Unauthenticated requests are rejected. As an admin, I can create, list, and delete users with role-based access control. JWT-based, database-backed, same pattern as `knowledge-base-qa-webapp`.
+As a user, I can log in with a username and password so that I can access the chat interface. My session stays alive transparently via token refresh, and I can log out when done. Unauthenticated requests are rejected. As an admin, I can create, list, and delete users with role-based access control.
 
-**Subtask 2.1 — Database layer and User model**
+**Subtask 2.1 — Backend: Database layer and User model**
 - [x] Add database dependencies to `pyproject.toml` (`sqlalchemy`, `pydantic-settings`)
 - [x] Implement `database.py` with sync SQLAlchemy engine, `SessionLocal`, `Base`, and `get_db` generator
 - [x] Implement `models/user.py` with `User` ORM model (UUID PK, username, email, password_hash, role with CHECK constraint, timestamps)
 - [x] Add `Settings` via `pydantic-settings` for `JWT_SECRET`, `DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, token expiry settings
+- [x] Add `users` table DDL to `sql/tables.sql`
 
-**Subtask 2.2 — Auth utilities, schemas, and repositories**
-- [x] Add auth dependencies to `pyproject.toml` (`python-jose[cryptography]`, `bcrypt`)
+**Subtask 2.2 — Backend: Auth utilities, schemas, and repositories**
 - [x] Implement `utils/auth.py`: `hash_password`, `verify_password` (bcrypt, 12 rounds), `create_access_token` (30 min, HS256), `create_refresh_token` (7 days, HS256), `decode_token`, `generate_password`
 - [x] Implement `schemas/auth.py`: `LoginRequest`, `TokenResponse`
 - [x] Implement `schemas/user.py`: `CreateUserRequest`, `CreateUserResponse`, `UserResponse`, `UserListResponse`, `MessageResponse`
 - [x] Implement `repositories/base.py` with `GenericRepository[T]` (sync CRUD)
 - [x] Implement `repositories/user_repository.py` with `UserRepository` extending `GenericRepository[User]`
 
-**Subtask 2.3 — Services and endpoints**
+**Subtask 2.3 — Backend: Services and endpoints**
 - [x] Implement `services/auth_service.py` with `AuthService` (login, refresh — validates against DB)
 - [x] Implement `services/admin_service.py` with `AdminService` (create_user with random password, list_users, delete_user)
 - [x] `POST /api/auth/login` — validate credentials against DB, return access token in body, set refresh token as HttpOnly cookie
@@ -57,51 +62,52 @@ As a user, I can log in with a username and password so that I can access the ch
 - [x] `GET /api/admin/users` — list all users (admin only)
 - [x] `DELETE /api/admin/users/{user_id}` — delete user (admin only, cannot delete admins)
 
-**Subtask 2.4 — Endpoint protection and dependency injection**
+**Subtask 2.4 — Backend: Endpoint protection and dependency injection**
 - [x] Implement `dependencies.py` with `get_current_user` (decodes Bearer token, looks up User in DB), `require_admin` (checks ADMIN_USER role), `get_refresh_token`
 - [x] Guard admin endpoints with `Depends(require_admin)`
 
-**Subtask 2.5 — Admin user seeding**
-- [x] On startup, create tables via `Base.metadata.create_all(engine)`
+**Subtask 2.5 — Backend: Admin user seeding**
 - [x] Seed admin user from `ADMIN_USERNAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars if no ADMIN_USER exists in DB
 
-### Story 3: MCP Client Integration
+**Subtask 2.6 — Frontend: Auth store and API wrapper**
+- [x] Create auth store (`lib/auth.svelte.ts`) using Svelte 5 runes to hold access token and auth state, persisted to `sessionStorage`
+- [x] Create API wrapper (`lib/api.ts`) that attaches `Authorization: Bearer <token>`, sends `credentials: 'include'`, and auto-refreshes via `POST /api/auth/refresh` on 401
 
-Connect the backend to the MCP server using `langchain-mcp-adapters`.
+**Subtask 2.7 — Frontend: Login page and route guard**
+- [x] Create login page (`routes/login/+page.svelte`) that authenticates against `POST /api/auth/login` and stores access token
+- [x] Add layout-level route guard (`routes/+layout.ts`) to redirect unauthenticated users to `/login`
+- [x] Add nav bar with logout button to root layout
 
+### Story 3: Flight Search
+
+As a user, I can search for flight information using natural language.
+
+**Subtask 3.1 — Backend: MCP client and agent**
 - [ ] Implement `mcp_client.py` with `MultiServerMCPClient` configured for Streamable HTTP transport
-- [ ] Load `search_flights` and `book_flight` as LangChain tools
-
-### Story 4: LangGraph ReAct Agent
-
-Set up the conversational agent that handles multi-turn flight search and booking.
-
+- [ ] Load `search_flights` as a LangChain tool
 - [ ] Implement `agent.py` with `create_react_agent` using `ChatBedrockConverse` (Claude Sonnet via Bedrock) and MCP tools
 - [ ] Configure PostgreSQL-backed conversation checkpointing (`PostgresSaver`)
-- [ ] Wire agent invocation into `POST /chat` endpoint with session-based `thread_id`
+- [ ] Wire agent invocation into `POST /api/chat` endpoint with session-based `thread_id`
 
-### Story 5: Bootstrap Frontend (`frontend/`)
-
-Set up the SvelteKit project for the chat UI.
-
-- [x] Scaffold SvelteKit app in `frontend/` with TypeScript
-- [x] Setup Docker build (`frontend/Dockerfile`)
-
-### Story 6: Chat UI
-
-Build the chat interface in SvelteKit.
-
-- [ ] Create auth store (Svelte writable) to hold access token and auth state
-- [ ] Create API wrapper (`lib/api.ts`) that attaches `Authorization: Bearer <token>`, sends `credentials: 'include'`, and auto-refreshes via `POST /api/auth/refresh` on 401
-- [ ] Create login page that authenticates against `POST /api/auth/login` and stores access token
+**Subtask 3.2 — Frontend: Chat UI**
 - [ ] Create chat page with message input and conversation history
-- [ ] Add layout-level route guard to redirect unauthenticated users to `/login`
+- [ ] Send user messages to `POST /api/chat` via `apiFetch` and display agent responses
+- [ ] Support multi-turn conversation (maintain `thread_id` per session)
 
-### Story 7: Add Tests
-
+**Subtask 3.3 — Tests**
 - [x] Add pytest tests for authentication (login, session validation, protected endpoint rejection)
 - [ ] Add pytest tests for the chat endpoint (mocked agent)
-- [ ] Add frontend tests (Vitest/Playwright)
+
+### Story 4: Flight Booking
+
+As a user, I can book a flight and get a confirmation.
+
+**Subtask 4.1 — Backend: Booking tool**
+- [ ] Load `book_flight` as a LangChain tool via the MCP client
+- [ ] Ensure the agent can handle booking requests within the conversation flow (passenger details, confirmation)
+
+**Subtask 4.2 — Frontend: Booking in chat**
+- [ ] Display booking confirmations (PNR, itinerary) in the chat UI
 
 ## Epic: Bootstrap Infrastructure
 

@@ -8,12 +8,44 @@ SvelteKit chat UI for the travel booking agent. Communicates with the backend AP
 - TypeScript
 - [`@sveltejs/adapter-node`](https://svelte.dev/docs/kit/adapter-node) for production builds
 
+## Pages
+
+| Route    | Description                                    | Auth     |
+|----------|------------------------------------------------|----------|
+| `/login` | Username/password login form                   | Public   |
+| `/`      | Home page (chat UI planned)                    | Required |
+
+Unauthenticated users are redirected to `/login` via a layout-level route guard.
+
+## Architecture
+
+### Auth Store (`lib/auth.svelte.ts`)
+
+Reactive auth state using Svelte 5 runes. Holds the access token and expiry timestamp, persisted to `sessionStorage` so state survives page reloads within a tab.
+
+### API Wrapper (`lib/api.ts`)
+
+All backend communication goes through this module:
+
+- `login(username, password)` — `POST /api/auth/login`, stores access token on success
+- `logout()` — `POST /api/auth/logout`, clears auth state
+- `apiFetch(path, init)` — Authenticated fetch wrapper that:
+  - Attaches `Authorization: Bearer <token>` header
+  - Sends `credentials: 'include'` (for the HttpOnly refresh cookie)
+  - On 401, attempts a silent refresh via `POST /api/auth/refresh` and retries once
+
+### Route Guard (`routes/+layout.ts`)
+
+Client-side only (`ssr = false`). Checks `auth.isAuthenticated` before every navigation and redirects to `/login` for protected routes.
+
 ## Development
 
 ```bash
 npm install
 npm run dev
 ```
+
+The dev server proxies `/api` requests to `http://localhost:8000` (the backend), configured in `vite.config.ts`.
 
 Type-check:
 
@@ -41,9 +73,17 @@ docker run -p 3000:3000 qa-app-frontend
 
 ```
 src/
-  routes/        Page routes (SvelteKit file-based routing)
-  lib/           Shared modules, components, and assets
-  app.html       HTML shell
-  app.d.ts       TypeScript declarations
-static/          Static assets served as-is
+  lib/
+    auth.svelte.ts   Reactive auth store (access token, expiry)
+    api.ts           API wrapper (login, logout, apiFetch with auto-refresh)
+    assets/          Static assets imported by components
+  routes/
+    +layout.ts       Route guard (redirect to /login if unauthenticated)
+    +layout.svelte   Root layout (nav bar with logout)
+    +page.svelte     Home page
+    login/
+      +page.svelte   Login form
+  app.html           HTML shell
+  app.d.ts           TypeScript declarations
+static/              Static assets served as-is
 ```
