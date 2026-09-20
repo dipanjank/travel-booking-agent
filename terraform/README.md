@@ -79,9 +79,21 @@ Fargate service for the booking MCP server, deployed in private subnets behind t
 - **ALB Routing** — target group on port 8001, listener rule forwarding `/book-mcp-server/*` (priority 100)
 - **Logs** — CloudWatch log group `/ecs/travel-booking-mcp-server`, 7-day retention
 
+### ECS QA App Backend Service (`ecs_backend.tf`)
+
+Fargate service for the QA app backend, deployed in private subnets behind the ALB:
+
+- **Task** — 512 CPU / 1024 MB, image from `travel-booking-app-backend` ECR repo
+- **Container** — port 8000, health check on `/health`
+- **Environment** — `ADMIN_USERNAME`, `ADMIN_EMAIL` as plain env vars
+- **Secrets** — `DATABASE_URL`, `JWT_SECRET`, `ADMIN_PASSWORD` injected from SSM SecureString
+- **Security Group** — inbound 8000 from ALB only, all outbound
+- **ALB Routing** — target group on port 8000, listener rule forwarding `/api/*` (priority 200)
+- **Logs** — CloudWatch log group `/ecs/travel-booking-backend`, 7-day retention
+
 ### SSM Parameters (`ssm.tf`)
 
-Network, ALB, ECS, and database configuration stored in SSM Parameter Store:
+Network, ALB, ECS, database, and backend configuration stored in SSM Parameter Store:
 
 | Parameter                                            | Type         |
 |------------------------------------------------------|--------------|
@@ -101,6 +113,9 @@ Network, ALB, ECS, and database configuration stored in SSM Parameter Store:
 | `/${project_name}/db/name`                           | String       |
 | `/${project_name}/db/username`                       | String       |
 | `/${project_name}/db/password`                       | SecureString |
+| `/${project_name}/backend/database-url`              | SecureString |
+| `/${project_name}/backend/jwt-secret`                | SecureString |
+| `/${project_name}/backend/admin-password`            | SecureString |
 
 ### ECR Repositories (`ecr.tf`)
 
@@ -123,6 +138,7 @@ All configuration is defined as locals (no input variables):
 | `aws_region`               | `eu-west-1`      |
 | `project_name`             | `travel-booking` |
 | `mcp_server_image_version` | `0.1.0`          |
+| `backend_image_version`    | `0.1.0`          |
 
 ## Outputs
 

@@ -178,11 +178,12 @@ As a developer, I can deploy the MCP server as a Fargate service behind the ALB,
 
 As a developer, I can deploy the QA app backend as a Fargate service behind the ALB.
 
-- [ ] Create ECS task definition for `qa-app-backend` (Fargate, image from ECR, port 8000)
-- [ ] Inject environment variables (JWT secret, admin credentials, database URL from Secrets Manager, MCP server URL via ALB)
-- [ ] Create ECS service in public subnets
-- [ ] Configure security group: allow inbound on port 8000 from the ALB security group, allow outbound to MCP server on port 8001 and to RDS on port 5432
-- [ ] Create ALB target group and listener rule to route `/api/*` to the backend service
+- [x] Create ECS task definition for `qa-app-backend` (Fargate, image from ECR, port 8000)
+- [x] Inject environment variables (JWT secret, admin credentials, database URL from SSM SecureString)
+- [x] Create ECS service in private subnets
+- [x] Configure security group: allow inbound on port 8000 from the ALB security group, allow all outbound
+- [x] Create ALB target group and listener rule to route `/api/*` to the backend service
+- [x] Add `/health` endpoint to the backend for ALB health checks
 
 ### Story 9: ECS Service for QA App Frontend
 

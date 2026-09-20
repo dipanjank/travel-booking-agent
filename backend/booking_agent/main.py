@@ -43,3 +43,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Travel Booking QA App", lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(admin_router)
+
+
+@app.get("/health")
+def health() -> dict:
+    """Health check endpoint for ALB target group."""
+    return {"status": "ok"}

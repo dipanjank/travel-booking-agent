@@ -86,6 +86,30 @@ resource "aws_ssm_parameter" "database_url" {
   tags = local.tags
 }
 
+resource "aws_ssm_parameter" "backend_database_url" {
+  name  = "/${local.project_name}/backend/database-url"
+  type  = "SecureString"
+  value = "postgresql+psycopg://${module.rds.db_instance_username}:${random_password.db.result}@${module.rds.db_instance_address}:${module.rds.db_instance_port}/${replace(local.project_name, "-", "_")}"
+
+  tags = local.tags
+}
+
+resource "aws_ssm_parameter" "backend_jwt_secret" {
+  name  = "/${local.project_name}/backend/jwt-secret"
+  type  = "SecureString"
+  value = random_password.jwt_secret.result
+
+  tags = local.tags
+}
+
+resource "aws_ssm_parameter" "backend_admin_password" {
+  name  = "/${local.project_name}/backend/admin-password"
+  type  = "SecureString"
+  value = random_password.admin_password.result
+
+  tags = local.tags
+}
+
 resource "aws_ssm_parameter" "db_endpoint" {
   name  = "/${local.project_name}/db/endpoint"
   type  = "String"
