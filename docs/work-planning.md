@@ -21,22 +21,49 @@ Implement tools exposed by the MCP server.
 
 Build the conversational QA app that lets users search and book flights via natural language, backed by a LangGraph ReAct agent calling MCP tools.
 
-### Story 1: Bootstrap Backend (`qa_app/backend/`)
+### Story 1: Bootstrap Backend (`backend/`)
 
-Set up the foundational FastAPI project in `qa_app/backend/`.
+Set up the foundational FastAPI project in `backend/`.
 
-- [ ] Scaffold `qa_app/backend/` package with `__init__.py`, `main.py` (FastAPI entry point), and `schemas.py` (ChatRequest, ChatResponse)
-- [ ] Add backend dependencies to `pyproject.toml` (fastapi, uvicorn, langgraph, langchain-aws, langchain-mcp-adapters, httpx, boto3)
-- [ ] Setup Docker build (`qa_app/backend/Dockerfile`)
+- [x] Scaffold `backend/booking_agent/` package with `__init__.py`, `main.py` (FastAPI entry point), and `schemas.py` (ChatRequest, ChatResponse)
+- [x] Add backend dependencies to `pyproject.toml` (fastapi, uvicorn, langgraph, langchain-aws, langchain-mcp-adapters, httpx, boto3)
+- [x] Setup Docker build (`backend/Dockerfile`)
 
-### Story 2: Authentication
+### Story 2: Authentication & User Management
 
-Implement simple username/password authentication with session cookies.
+As a user, I can log in with a username and password so that I can access the chat interface. My session stays alive transparently via token refresh, and I can log out when done. Unauthenticated requests are rejected. As an admin, I can create, list, and delete users with role-based access control. JWT-based, database-backed, same pattern as `knowledge-base-qa-webapp`.
 
-- [ ] Implement `auth.py` with login endpoint (`POST /login`) and session management
-- [ ] Store credentials as environment variables (single username/password pair)
-- [ ] Add `Depends(authenticate_user)` guard on protected endpoints
-- [ ] Configure CORS to allow requests from the frontend origin
+**Subtask 2.1 — Database layer and User model**
+- [x] Add database dependencies to `pyproject.toml` (`sqlalchemy`, `pydantic-settings`)
+- [x] Implement `database.py` with sync SQLAlchemy engine, `SessionLocal`, `Base`, and `get_db` generator
+- [x] Implement `models/user.py` with `User` ORM model (UUID PK, username, email, password_hash, role with CHECK constraint, timestamps)
+- [x] Add `Settings` via `pydantic-settings` for `JWT_SECRET`, `DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, token expiry settings
+
+**Subtask 2.2 — Auth utilities, schemas, and repositories**
+- [x] Add auth dependencies to `pyproject.toml` (`python-jose[cryptography]`, `bcrypt`)
+- [x] Implement `utils/auth.py`: `hash_password`, `verify_password` (bcrypt, 12 rounds), `create_access_token` (30 min, HS256), `create_refresh_token` (7 days, HS256), `decode_token`, `generate_password`
+- [x] Implement `schemas/auth.py`: `LoginRequest`, `TokenResponse`
+- [x] Implement `schemas/user.py`: `CreateUserRequest`, `CreateUserResponse`, `UserResponse`, `UserListResponse`, `MessageResponse`
+- [x] Implement `repositories/base.py` with `GenericRepository[T]` (sync CRUD)
+- [x] Implement `repositories/user_repository.py` with `UserRepository` extending `GenericRepository[User]`
+
+**Subtask 2.3 — Services and endpoints**
+- [x] Implement `services/auth_service.py` with `AuthService` (login, refresh — validates against DB)
+- [x] Implement `services/admin_service.py` with `AdminService` (create_user with random password, list_users, delete_user)
+- [x] `POST /api/auth/login` — validate credentials against DB, return access token in body, set refresh token as HttpOnly cookie
+- [x] `POST /api/auth/refresh` — decode refresh token from cookie, look up user in DB, issue new tokens
+- [x] `POST /api/auth/logout` — delete refresh token cookie
+- [x] `POST /api/admin/users` — create user (admin only), return one-time password
+- [x] `GET /api/admin/users` — list all users (admin only)
+- [x] `DELETE /api/admin/users/{user_id}` — delete user (admin only, cannot delete admins)
+
+**Subtask 2.4 — Endpoint protection and dependency injection**
+- [x] Implement `dependencies.py` with `get_current_user` (decodes Bearer token, looks up User in DB), `require_admin` (checks ADMIN_USER role), `get_refresh_token`
+- [x] Guard admin endpoints with `Depends(require_admin)`
+
+**Subtask 2.5 — Admin user seeding**
+- [x] On startup, create tables via `Base.metadata.create_all(engine)`
+- [x] Seed admin user from `ADMIN_USERNAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars if no ADMIN_USER exists in DB
 
 ### Story 3: MCP Client Integration
 
@@ -53,20 +80,22 @@ Set up the conversational agent that handles multi-turn flight search and bookin
 - [ ] Configure PostgreSQL-backed conversation checkpointing (`PostgresSaver`)
 - [ ] Wire agent invocation into `POST /chat` endpoint with session-based `thread_id`
 
-### Story 5: Bootstrap Frontend (`qa_app/frontend/`)
+### Story 5: Bootstrap Frontend (`frontend/`)
 
 Set up the SvelteKit project for the chat UI.
 
-- [ ] Scaffold SvelteKit app in `qa_app/frontend/` with TypeScript
-- [ ] Setup Docker build (`qa_app/frontend/Dockerfile`)
+- [ ] Scaffold SvelteKit app in `frontend/` with TypeScript
+- [ ] Setup Docker build (`frontend/Dockerfile`)
 
 ### Story 6: Chat UI
 
 Build the chat interface in SvelteKit.
 
-- [ ] Create login page that authenticates against `POST /login`
+- [ ] Create auth store (Svelte writable) to hold access token and auth state
+- [ ] Create API wrapper (`lib/api.ts`) that attaches `Authorization: Bearer <token>`, sends `credentials: 'include'`, and auto-refreshes via `POST /api/auth/refresh` on 401
+- [ ] Create login page that authenticates against `POST /api/auth/login` and stores access token
 - [ ] Create chat page with message input and conversation history
-- [ ] Connect to backend `POST /chat` endpoint, handle session cookies
+- [ ] Add layout-level route guard to redirect unauthenticated users to `/login`
 
 ### Story 7: Add Tests
 
@@ -89,8 +118,9 @@ As a developer, I can store Terraform state remotely and deploy infrastructure v
 
 As a developer, I can push container images to ECR for each service.
 
-- [x] **Subtask 2.1:** Create ECR repository for `travel-booking-app`.
-- [x] **Subtask 2.2:** Create ECR repository for `booking-mcp-server`.
+- [x] **Subtask 2.1:** Create ECR repository for `travel-booking-app-backend`.
+- [ ] **Subtask 2.2:** Create ECR repository for `travel-booking-app-frontend`.
+- [x] **Subtask 2.3:** Create ECR repository for `booking-mcp-server`.
 
 ### Story 3: VPC and Subnets
 
@@ -115,7 +145,7 @@ As a developer, I can route internet traffic to the QA app through a public Appl
 As a developer, I can connect the MCP server to a private PostgreSQL database, with connection parameters stored in SSM Parameter Store.
 
 - [x] Create a PostgreSQL RDS instance in the private subnets.
-- [x] Configure security group to allow inbound on port 5432 only from the MCP Server security group.
+- [x] Configure security group to allow inbound on port 5432 from the MCP Server and QA App Backend security groups.
 - [x] Store the following in SSM Parameter Store:
   - Database endpoint
   - Database port
@@ -143,9 +173,9 @@ As a developer, I can deploy the MCP server as a Fargate service behind the ALB,
 As a developer, I can deploy the QA app backend as a Fargate service behind the ALB.
 
 - [ ] Create ECS task definition for `qa-app-backend` (Fargate, image from ECR, port 8000)
-- [ ] Inject environment variables (QA login credentials from Secrets Manager, MCP server URL via ALB)
+- [ ] Inject environment variables (JWT secret, admin credentials, database URL from Secrets Manager, MCP server URL via ALB)
 - [ ] Create ECS service in public subnets
-- [ ] Configure security group: allow inbound on port 8000 from the ALB security group, allow outbound to MCP server on port 8001
+- [ ] Configure security group: allow inbound on port 8000 from the ALB security group, allow outbound to MCP server on port 8001 and to RDS on port 5432
 - [ ] Create ALB target group and listener rule to route `/api/*` to the backend service
 
 ### Story 9: ECS Service for QA App Frontend
@@ -180,7 +210,7 @@ As a developer, I can automatically build and push the MCP server image to ECR o
 As a developer, I can automatically build and push the QA app images to ECR on code changes.
 
 - [ ] Create a GitHub Actions workflow to build and push the QA app frontend image to ECR.
-- [ ] Create a GitHub Actions workflow to build and push the QA app backend image to ECR.
+- [x] Create a GitHub Actions workflow to build and push the QA app backend image to ECR.
 
 ### Story 4: Python Pre-commit and Pytest Workflow
 

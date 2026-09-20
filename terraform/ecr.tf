@@ -1,4 +1,4 @@
-resource "aws_ecr_repository" "qa_app" {
+resource "aws_ecr_repository" "backend" {
   name                 = "travel-booking-app"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
@@ -6,8 +6,8 @@ resource "aws_ecr_repository" "qa_app" {
   tags = local.tags
 }
 
-resource "aws_ecr_lifecycle_policy" "qa_app" {
-  repository = aws_ecr_repository.qa_app.name
+resource "aws_ecr_lifecycle_policy" "backend" {
+  repository = aws_ecr_repository.backend.name
 
   policy = jsonencode({
     rules = [{

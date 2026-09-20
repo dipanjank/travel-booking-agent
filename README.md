@@ -11,7 +11,7 @@ User -> ALB -> QA App (FastAPI + LangGraph) -> MCP Server (fastMCP) -> PostgreSQ
 | Component                             | Directory            | Description                                                                           |
 |---------------------------------------|----------------------|---------------------------------------------------------------------------------------|
 | [MCP Server](mcp_server/README.md)    | `mcp_server/`        | fastMCP server exposing `search_flights` and `book_flight` tools over Streamable HTTP |
-| QA App                                | `qa_app/`            | FastAPI web server with a LangGraph ReAct agent that calls MCP tools                  |
+| [QA App](backend/README.md)           | `backend/`           | FastAPI web server with auth, user management, and conversational agent (planned)      |
 | [Infrastructure](terraform/README.md) | `terraform/`         | Terraform modules for AWS deployment (VPC, ECS Fargate, RDS, ALB, ECR)                |
 | [CI/CD](.github/workflows/README.md)  | `.github/workflows/` | GitHub Actions workflows for linting, testing, and Docker image builds                |
 
