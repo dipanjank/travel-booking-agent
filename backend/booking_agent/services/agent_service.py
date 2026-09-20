@@ -41,7 +41,8 @@ class AgentService:
             region_name=settings.aws_region,
         )
 
-        self._checkpointer_ctx = AsyncPostgresSaver.from_conn_string(settings.database_url)
+        pg_url = settings.database_url.replace("postgresql+psycopg", "postgresql", 1)
+        self._checkpointer_ctx = AsyncPostgresSaver.from_conn_string(pg_url)
         checkpointer = await self._checkpointer_ctx.__aenter__()
         await checkpointer.setup()
 
