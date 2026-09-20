@@ -129,9 +129,9 @@ Container registries for application images:
 
 All repositories have mutable tags, force delete enabled, and a lifecycle policy that keeps the last 5 images.
 
-## Locals (`main.tf`)
+## Locals and Generated Secrets (`main.tf`)
 
-All configuration is defined as locals (no input variables):
+All configuration is defined as locals (no input variables). Random passwords for the backend JWT secret and admin user are generated via `random_password` and stored in SSM.
 
 | Name                       | Default          |
 |----------------------------|------------------|
