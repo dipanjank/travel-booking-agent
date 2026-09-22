@@ -38,37 +38,37 @@ output "alb_dns_name" {
   value       = aws_lb.main.dns_name
 }
 
-output "alb_http_listener_arn" {
-  description = "ARN of the ALB HTTP listener"
-  value       = aws_lb_listener.http.arn
-}
+# output "alb_http_listener_arn" {
+#   description = "ARN of the ALB HTTP listener"
+#   value       = aws_lb_listener.http.arn
+# }
 
 output "alb_security_group_id" {
   description = "ID of the ALB security group"
   value       = aws_security_group.alb.id
 }
 
-output "ecs_cluster_arn" {
-  description = "ARN of the ECS cluster"
-  value       = aws_ecs_cluster.main.arn
-}
-
-output "ecs_cluster_name" {
-  description = "Name of the ECS cluster"
-  value       = aws_ecs_cluster.main.name
-}
-
-output "rds_endpoint" {
-  description = "Endpoint of the RDS instance"
-  value       = module.rds.db_instance_address
-}
-
-output "rds_port" {
-  description = "Port of the RDS instance"
-  value       = module.rds.db_instance_port
-}
-
-output "database_security_group_id" {
-  description = "ID of the database security group"
-  value       = aws_security_group.database.id
-}
+# output "ecs_cluster_arn" {
+#   description = "ARN of the ECS cluster"
+#   value       = aws_ecs_cluster.main.arn
+# }
+#
+# output "ecs_cluster_name" {
+#   description = "Name of the ECS cluster"
+#   value       = aws_ecs_cluster.main.name
+# }
+#
+# output "rds_endpoint" {
+#   description = "Endpoint of the RDS instance"
+#   value       = module.rds.db_instance_address
+# }
+#
+# output "rds_port" {
+#   description = "Port of the RDS instance"
+#   value       = module.rds.db_instance_port
+# }
+#
+# output "database_security_group_id" {
+#   description = "ID of the database security group"
+#   value       = aws_security_group.database.id
+# }
