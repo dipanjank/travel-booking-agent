@@ -12,12 +12,12 @@ locals {
   }
 }
 
-resource "random_password" "jwt_secret" {
-  length  = 64
-  special = false
-}
-
-resource "random_password" "admin_password" {
-  length  = 24
-  special = false
-}
+# resource "random_password" "jwt_secret" {
+#   length  = 64
+#   special = false
+# }
+#
+# resource "random_password" "admin_password" {
+#   length  = 24
+#   special = false
+# }
